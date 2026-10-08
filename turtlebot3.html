@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projet Robotique Mobile - TurtleBot3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 24px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2 {
+            color: #002b49;
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #004080;
+            margin-top: 20px;
+        }
+        ul, ol {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code, pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Consolas, Monaco, monospace;
+            display: block;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        p code {
+            display: inline;
+            padding: 2px 6px;
+        }
+        .note {
+            background: #e7f3fe;
+            border-left: 5px solid #2196F3;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">&larr; Retour à l'accueil du portfolio</a>
+
+    <header>
+        <h1>Projet Robotique Mobile et Navigation Autonome</h1>
+        <p>Application sur Robot TurtleBot3 (ROS / C++ / Python)</p>
+    </header>
+
+    <div class="section">
+        <h2>Liens et Ressources Utiles</h2>
+        <ul>
+            <li><strong>C++ :</strong> <a href="https://en.cppreference.com" target="_blank">CPP Reference</a>, <a href="https://cplusplus.com" target="_blank">CPlusPlus</a></li>
+            <li><strong>Python :</strong> <a href="https://www.w3schools.com/python/" target="_blank">W3Schools</a></li>
+            <li><strong>ROS :</strong> <a href="http://www.ros.org" target="_blank">ros.org</a>, Tutoriels ROS, Liste de commandes ROS</li>
+            <li><strong>Messagerie standard :</strong> <code>std_msgs</code>, <code>common_msgs</code>, <code>geometry_msgs</code>, <code>sensor_msgs</code></li>
+        </ul>
+        <div class="note">
+            <strong>Mise à jour de l'horloge Raspberry :</strong> Exécuter le script <code>horloge.sh</code>.<br>
+            <strong>Rappel environnement :</strong> À chaque ouverture de session ou redémarrage du simulateur Gazebo / TB3, exécuter dans un terminal : <code>source init.sh</code>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>1. Procédure d'accès au TurtleBot3</h2>
+        <ol>
+            <li>Installer l'outil <strong>MobaXterm</strong>.</li>
+            <li>Ouvrir une session SSH vers le robot TB3 via l'adresse IP de la carte Raspberry.</li>
+            <li>Transférer le package du projet dans le dossier <code>catkin_ws/src</code> puis compiler.</li>
+            <li>Lancer le nœud de communication bas niveau (OpenCR / Raspberry) :
+                <code>roslaunch turtlebot3_bringup turtlebot3_robot.launch</code><br>
+                <em>(Ou via le fichier <code>run_robot.sh</code> présent sur le TB3).</em>
+            </li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>2. Création du Package et Contrôleur ROS</h2>
+        <p>Création du package avec les dépendances requises :</p>
+        <code>catkin_create_pkg tb3_projet_xx std_msgs geometry_msgs nav_msgs sensor_msgs message_generation actionlib_msgs actionlib tf tf2 tf2_ros rospy roscpp</code>
+
+        <h3>Création du nœud contrôleur & Topic <code>/log</code></h3>
+        <ul>
+            <li>Importation de <code>controleur.cpp</code> dans le dossier <code>src</code>.</li>
+            <li>Création d'un publisher publiant toutes les 2 secondes un message String sur le topic <code>/log</code>.</li>
+            <li>Mise à jour du <code>CMakeLists.txt</code> et compilation du workspace (<code>catkin_make</code> / <code>cm</code>).</li>
+            <li>Création d'un dossier <code>launch/run.launch</code> pour lancer le nœud via <code>roslaunch</code>.</li>
+        </ul>
+
+        <h3>Pilotage du TB3</h3>
+        <ul>
+            <li>Intégration d'un second publisher pour envoyer des consignes de vitesse (<code>geometry_msgs/Twist</code>).</li>
+            <li>Développement des fonctions <code>avancer(double vitesse)</code>, <code>reculer(double vitesse)</code> et <code>arreter()</code> basées sur la période du contrôleur.</li>
+            <li>Gestion de l'arrêt d'urgence et de la coupure propre dans le gestionnaire de signal (<code>sigintHandler</code> lors du <code>CTRL+C</code>).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>3. Contrôle et Navigation du TB3</h2>
+        
+        <h3>I. Mode Navigation Manuelle</h3>
+        <p>Utilisation de <code>key_input_node.cpp</code> pour piloter le robot au clavier (vitesses linéaires et angulaires paramétrables sans dépasser <code>MAX_LINEAR_SPEED</code> et <code>MAX_ANGULAR_SPEED</code>).</p>
+
+        <h3>II. Mode Navigation Autonome</h3>
+        <p><strong>II.1 Localisation :</strong> Lecture du topic d'odométrie. Conversion des quaternions en angles d'Euler (Yaw) via <code>tf::getYaw()</code> :</p>
+        <code>#include &lt;tf/tf.h&gt;</code>
+
+        <p><strong>II.2 Navigation vers un but :</strong></p>
+        <ul>
+            <li><strong>Asservissement en position (linéaire) :</strong> Correction proportionnelle PID (gain <code>Kp_pos</code>) avec une tolérance de <code>+/- 0.02m</code>.</li>
+            <li><strong>Asservissement angulaire :</strong> Correction PID avec une tolérance de <code>+/- 0.05 rad</code> et utilisation de la fonction <code>cal_delta_Theta</code> pour gérer l'écart angulaire sur <code>[-PI, +PI]</code>.</li>
+            <li><strong>Cinématique inverse :</strong> Calcul de distance et d'angle cible par <code>atan2()</code> et <code>sqrt()</code> dans un plan cartésien (2D Nav Goal depuis RViz).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>4. Perception LIDAR & Obstacles</h2>
+        <p>Exploitation du capteur LIDAR (LDS-01 / LDS-02) publiant sur le topic associé (type <code>sensor_msgs/LaserScan</code>).</p>
+        <ul>
+            <li>Division de l'environnement proche en 8 régions égales.</li>
+            <li>Filtrage des valeurs invalides (hors <code>range_min</code> / <code>range_max</code>).</li>
+            <li>Calcul de la distance minimale par région pour détecter la présence d'obstacles.</li>
+            <li>Visualisation dynamique sous RViz à l'aide de marqueurs <code>visualization_msgs/MarkerArray</code> (fichiers <code>rviz_tb3.launch</code> et <code>tb3_lidar.rviz</code>).</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Actions, Services & SLAM</h2>
+        <ul>
+            <li><strong>Actions ROS :</strong> Utilisation de <code>Move.action</code>, compilation en deux temps, et intégration d'un serveur d'action dans le contrôleur.</li>
+            <li><strong>Services ROS :</strong> Définition de <code>pos_service.srv</code> pour collecter dynamiquement des listes de positions cibles stockées dans un vecteur (<code>std::vector&lt;Pose2D&gt;</code>).</li>
+            <li><strong>SLAM (Cartographie) :</strong> Lancement du Gmapping (<code>turtlebot3_slam.launch</code>), exploration par téléopération, et sauvegarde de la carte via <code>map_server map_saver</code> (fichiers <code>map.pgm</code> et <code>map.yaml</code>).</li>
+            <li><strong>Planification de trajectoire :</strong> Intégration du package <code>AStar-ROS</code> pour une navigation autonome sur grille d'occupation.</li>
+        </ul>
+
+        <div class="note">
+            <strong>Flash OpenCR :</strong><br>
+            <code>wget https://www.esiee.fr/~hamouchr/tb3/flash_tb3_opencr_noetic.sh</code>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau | Projet Robotique ESIEE Paris</p>
+    </footer>
+
+</body>
+</html>
