@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projet Domotique - Portfolio</title>
+    <title>Projet Domotique & IoT - STM32</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -46,20 +46,37 @@
             border-bottom: 2px solid #f2f2f2;
             padding-bottom: 8px;
         }
-        .scenario-box {
-            background: #e7f3fe;
-            border-left: 5px solid #2196F3;
-            padding: 12px;
+        .scenario-card {
+            background: #fafafa;
+            border-left: 5px solid #002b49;
+            padding: 15px;
             margin: 15px 0;
             border-radius: 0 4px 4px 0;
+            transition: transform 0.2s;
         }
-        pre {
-            background: #272822;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
-            font-family: Consolas, Monaco, monospace;
+        .scenario-card:hover {
+            transform: translateX(5px);
+        }
+        .scenario-card.in-progress {
+            border-left-color: #ff9800;
+            background: #fff9f0;
+        }
+        .scenario-card a {
+            font-size: 18px;
+            font-weight: bold;
+            color: #002b49;
+            text-decoration: none;
+        }
+        .scenario-card.in-progress span {
+            color: #e65100;
+            font-size: 14px;
+            float: right;
+            font-weight: bold;
+        }
+        p.desc {
+            margin: 8px 0 0 0;
+            color: #555;
+            font-size: 14px;
         }
         footer {
             text-align: center;
@@ -71,56 +88,63 @@
 </head>
 <body>
 
-    <a href="index.html" class="back-link">&larr; Retour à l'accueil</a>
+    <a href="index.html" class="back-link">&larr; Retour à l'accueil du portfolio</a>
 
     <header>
-        <h1>Projet : Système Domotique & IoT</h1>
-        <p>Présentation des scénarios d'usage et codes sources associés.</p>
+        <h1>Projet : Système Domotique & IoT (STM32)</h1>
+        <p>Architecture globale et suivi des différents scénarios d'ingénierie.</p>
     </header>
 
     <div class="section">
-        <h2>1. Objectif du projet</h2>
-        <p>Ce projet a pour but de concevoir un système intelligent de gestion de présence et de confort thermique. L'architecture repose sur des microcontrôleurs connectés et des capteurs discrets pour automatiser l'habitat.</p>
+        <h2>Présentation du Projet</h2>
+        <p>Ce projet consiste à développer un système domotique complet articulé autour d'un microcontrôleur STM32. Le système intègre des capteurs de sécurité (gaz, intrusion), de confort (température, luminosité), des actionneurs (servomoteur, buzzer, LED) et une communication de supervision (UART, LCD, I²C).</p>
     </div>
 
     <div class="section">
-        <h2>2. Scénarios mis en place</h2>
-        
-        <div class="scenario-box">
-            <strong>Scénario A : Détection de présence et éclairage adaptatif</strong>
-            <p><strong>But :</strong> Allumer progressivement l'éclairage de la pièce uniquement si la luminosité naturelle est insuffisante et qu'un mouvement est détecté.</p>
+        <h2>Liste des Scénarios</h2>
+
+        <!-- Scénario 1 : Terminé / Actif -->
+        <div class="scenario-card">
+            <a href="scenario1.html">Scénario 1 — Gestion d’une tâche périodique (Timer et interruptions)</a>
+            <p class="desc">Configuration d'un Timer STM32 pour cadencer l'acquisition des capteurs (2 à 5 secondes) et validation expérimentale avec la LED PA5 et l'oscilloscope.</p>
         </div>
 
-        <div class="scenario-box">
-            <strong>Scénario B : Mode Absence / Économie d'énergie</strong>
-            <p><strong>But :</strong> Coupler les capteurs d'ouverture de porte et de température pour abaisser automatiquement le chauffage lorsque la pièce est inoccupée depuis plus de 30 minutes.</p>
+        <!-- Scénarios en cours -->
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 2 — Sécurité : HOME/AWAY et détection d'intrusion (PIR)</strong>
+            <p class="desc">Gestion des modes via bouton EXTI et détection de mouvement non bloquante.</p>
         </div>
-    </div>
 
-    <div class="section">
-        <h2>3. Extraits de Code</h2>
-        <p>Voici un aperçu du script principal gérant l'analyse des capteurs :</p>
-        
-        <pre><code>// Exemple de code embarqué (C/C++ ou script de gestion)
-#define CAPTEUR_PIN 4
-#define RELAIS_LUMIERE 12
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 3 — Détection de gaz (MQ-2 et ADC)</strong>
+            <p class="desc">Surveillance de la qualité de l'air, seuil de déclenchement et alarme sonore/lumineuse.</p>
+        </div>
 
-void setup() {
-    pinMode(CAPTEUR_PIN, INPUT);
-    pinMode(RELAIS_LUMIERE, OUTPUT);
-    Serial.begin(115200);
-}
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 4 — Supervision (Liaison série UART)</strong>
+            <p class="desc">Communication avec un PC via ST-LINK pour le diagnostic et le suivi des états.</p>
+        </div>
 
-void loop() {
-    int presence = digitalRead(CAPTEUR_PIN);
-    if (presence == HIGH) {
-        digitalWrite(RELAIS_LUMIERE, HIGH);
-        Serial.println("Mouvement détecté : Allumage de la lumière.");
-    } else {
-        digitalWrite(RELAIS_LUMIERE, LOW);
-    }
-    delay(1000);
-}</code></pre>
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 5 — Gestion intelligente de la fenêtre (PWM & Pluie)</strong>
+            <p class="desc">Commande d'un servomoteur et fermeture automatique en cas de pluie ou en mode AWAY.</p>
+        </div>
+
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 6 — Mesure de température (Driver I²C TMP102)</strong>
+            <p class="desc">Développement d'un driver bas-niveau sans bibliothèque et analyse des trames SCL/SDA.</p>
+        </div>
+
+        <div class="scenario-card in-progress">
+            <span>En cours</span>
+            <strong>Scénario 7 — Intégration globale du système</strong>
+            <p class="desc">Assemblage de l'ensemble des modules dans une application unique et cohérente.</p>
+        </div>
     </div>
 
     <footer>
