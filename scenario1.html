@@ -42,8 +42,10 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        h2 {
+        h2, h3, h4 {
             color: #002b49;
+        }
+        h2 {
             border-bottom: 2px solid #f2f2f2;
             padding-bottom: 8px;
         }
@@ -51,7 +53,14 @@
             padding-left: 20px;
         }
         li {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
         }
         pre {
             background: #272822;
@@ -61,6 +70,19 @@
             overflow-x: auto;
             font-family: Consolas, Monaco, monospace;
             font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .math-block {
+            background: #fdfdfd;
+            border-left: 4px solid #002b49;
+            padding: 10px 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            overflow-x: auto;
         }
         footer {
             text-align: center;
@@ -87,17 +109,47 @@
 
     <div class="section">
         <h2>Justification des choix techniques et configuration</h2>
-        <p><em>En suivant le cours d'Architectures Numériques Embarquées page 106 :</em></p>
+        <p>Le Timer 2 (<code>TIM2</code>) est configuré pour générer une interruption périodique. Les paramètres choisis (le prescaler et la période/ARR) permettent d'obtenir la base de temps souhaitée, fixée ici à 2 secondes.</p>
+
+        <h3>Démarrage du Timer en mode Interruption</h3>
+        <p>Le Timer est démarré avec l'activation des interruptions juste avant la boucle infinie <code>while(1)</code> dans le programme principal (<code>main</code>) à l'aide de la fonction suivante :</p>
+        <pre><code class="language-C">HAL_TIM_Base_Start_IT(&htim2);</code></pre>
+
+        <h3>Gestionnaire d'interruption et Fonction Callback (ISR)</h3>
+        <p>La fonction de rappel (<em>callback</em>) <code>HAL_TIM_PeriodElapsedCallback</code> est appelée automatiquement par la bibliothèque HAL. Elle permet de basculer l'état de la LED reliée à la broche PA5 :</p>
+        <pre><code class="language-C">void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM2)
+  {
+    // Basculement de l'etat de la LED PA5
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+  }
+}</code></pre>
+
+        <h3>Justification et calcul de la période</h3>
+        <p>La fréquence d'horloge d'entrée du timer est de <em>F</em><sub>APB</sub> = 16 MHz. La formule générale permettant de calculer la période temporelle <em>T</em> (le temps séparant deux interruptions) est la suivante :</p>
+        
+        <div class="math-block">
+            $$T = \frac{(\text{Prescaler} + 1) \times (\text{Period} + 1)}{F_{\text{APB}}}$$
+        </div>
+
+        <p>En injectant les paramètres choisis dans le code :</p>
         <ul>
-            <li><strong>Configuration (.ioc) :</strong> Initialisation de l'horloge, des GPIO et du Timer 2.</li>
-            <li><strong>Gestion par interruption :</strong> Génération d'une interruption matérielle à chaque période du Timer 2.</li>
-            <li><strong>Changement d'état :</strong> Basculement non bloquant de la LED (<code>HAL_GPIO_TogglePin</code>) via la fonction de rappel <code>HAL_TIM_PeriodElapsedCallback</code>.</li>
-            <li><strong>Démarrage :</strong> Lancement de l'interruption du timer avec <code>HAL_TIM_Base_Start_IT(&htim2)</code>.</li>
+            <li><strong>Prescaler</strong> = 1599</li>
+            <li><strong>Period (ARR)</strong> = 19999</li>
+            <li><em>F</em><sub>APB</sub> = 16 MHz</li>
         </ul>
+
+        <p>Le calcul donne :</p>
+        <div class="math-block">
+            $$T = \frac{(1599 + 1) \times (19999 + 1)}{16\ 000\ 000} = \frac{1600 \times 20\ 000}{16\ 000\ 000} = 2\text{ secondes}$$
+        </div>
+
+        <p>La période obtenue est donc bien de 2 secondes, ce qui respecte la contrainte demandée.</p>
     </div>
 
     <div class="section">
-        <h2>Code source de l'application (<code>main.c</code>)</h2>
+        <h2>Code source complet de l'application (<code>main.c</code>)</h2>
         <p>Le code source complet implémentant la configuration et la logique d'interruption du timer est présenté ci-dessous :</p>
         
         <pre><code>/* USER CODE BEGIN Header */
@@ -231,9 +283,9 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 1 */
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 2499;
+  htim2.Init.Prescaler = 1599;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 15999;
+  htim2.Init.Period = 19999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
