@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 2 — Gestion des modes HOME / AWAY, EXTI et Alarme PIR</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 60%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #fff;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 2 — Gestion des modes HOME / AWAY, EXTI et Alarme PIR</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce second scénario intègre la gestion de deux modes de fonctionnement pour la maison intelligente :</p>
+        <ul>
+            <li><strong>MODE HOME :</strong> La maison est occupée ; les détections de mouvement par le capteur PIR sont considérées comme normales et ne déclenchent aucune alarme.</li>
+            <li><strong>MODE AWAY :</strong> La maison est inoccupée ; toute détection de mouvement par le capteur PIR active immédiatement une alarme intrusion (activation du buzzer et clignotement de la LED d'alarme de manière non bloquante).</li>
+        </ul>
+
+        <div class="img-container">
+            <!-- Pense à bien placer ton image dans ton dossier GitHub ou à adapter le nom du fichier -->
+            <img src="architecture.png" alt="Schéma d'architecture du Scénario 2">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Schéma fonctionnel du système d'alarme et des modes HOME / AWAY</p>
+        </div>
+
+        <p>Le basculement entre ces modes s'effectue à l'aide du bouton poussoir utilisateur de la carte géré par une interruption externe (<em>EXTI</em>), incluant une protection logicielle anti-rebond. Le système intègre également une surveillance continue d'un capteur de gaz via l'ADC.</p>
+    </div>
+
+    <div class="section">
+        <h2>Justification des choix techniques et configuration</h2>
+
+        <h3>1. Gestion du bouton utilisateur et filtrage anti-rebond</h3>
+        <p>Le bouton poussoir (<em>BT_Pin</em>, broche PC13) est configuré en interruption externe. Pour éviter les faux déclenchements dus aux parasites mécaniques du bouton, une protection logicielle par mesure du temps écoulé (<em>debouncing</em> via <code>HAL_GetTick()</code>) est mise en place avec un seuil minimal de 200 ms.</p>
+        <p>Voici la fonction de rappel des interruptions externes (<code>HAL_GPIO_EXTI_Callback</code>) gérant le changement de mode et l'interception du capteur PIR :</p>
+
+        <pre><code class="language-C">void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == GPIO_PIN_13)
+  {
+    uint32_t current_time = HAL_GetTick();
+
+    if ((current_time - last_interrupt_time) > 200)
+    {
+      last_interrupt_time = current_time;
+
+      if (currentMode == MODE_HOME)
+      {
+        currentMode = MODE_AWAY;
+      }
+      else
+      {
+        currentMode = MODE_HOME;
+        alarm_active = 0;
+      }
+    }
+  }
+
+  else if (GPIO_Pin == GPIO_PIN_0)
+  {
+    if (currentMode == MODE_AWAY)
+    {
+      alarm_active = 1;
+    }
+  }
+}</code></pre>
+
+        <h3>2. Gestion non bloquante de l'alarme (Buzzer et LED)</h3>
+        <p>Lorsque le système bascule en état d'alarme (suite à une intrusion en mode AWAY ou à une détection de gaz via l'ADC), le clignotement de la LED d'alarme et la commande du buzzer passif sont gérés de manière asynchrone dans la boucle infinie <code>while(1)</code>, en s'appuyant sur <code>HAL_GetTick()</code> plutôt que sur des fonctions de temporisation bloquantes (<code>delay</code>).</p>
+
+        <pre><code class="language-C">while(1){
+      if (alarm_active == 1)
+      {
+          uint32_t current_tick_alarm = HAL_GetTick();
+          uint32_t current_toggle = HAL_GetTick();
+
+          if (current_toggle - last_buzzer_toggle >= 1)
+          {
+              last_buzzer_toggle = current_toggle;
+              HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
+          }
+          if (current_tick_alarm - last_led_toggle >= 250)
+          {
+              last_led_toggle = current_tick_alarm;
+              HAL_GPIO_TogglePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin);
+          }
+      }
+      else
+      {
+          // Réinitialisation des sorties si l'alarme est désactivée
+          HAL_GPIO_WritePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin, GPIO_PIN_RESET);
+          HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+      }
+    }</code></pre>
+
+        <h3>Difficultés rencontrées et résolution (Câblage du Buzzer)</h3>
+        <div class="note">
+            <p>Au cours de la mise en œuvre de ce second scénario, nous avons initialement câblé le détecteur PIR sur la broche <strong>PA0</strong>, la LED d'alarme sur <strong>PA1</strong> et le buzzer sur <strong>PA2</strong>. Cependant, lors des phases de test, nous avons constaté que le buzzer ne fonctionnait pas correctement.</p>
+            <p>Après des investigations à l'oscilloscope et au multimètre, nous avons mesuré une tension de sortie de seulement <em>1 V</em> sur la broche <strong>PA2</strong>, ce qui s'est avéré insuffisant pour alimenter et commuter correctement le buzzer ainsi que les LED. Pour résoudre ce problème de tension, nous avons décidé de déplacer la commande du buzzer de la broche <strong>PA2</strong> vers la broche <strong>PA4</strong>. Suite à cette modification matérielle, le signal de commande a retrouvé un niveau logique suffisant et l'ensemble du système (buzzer et LED d'alarme) a fonctionné de manière optimale.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
