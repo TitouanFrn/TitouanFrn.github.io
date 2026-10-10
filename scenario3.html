@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 3 — Détection de gaz et fumées (Capteur MQ-2 et ADC)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 60%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #fff;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 3 — Détection de gaz et fumées (Capteur MQ-2 et ADC)</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce troisième scénario concerne la surveillance de la qualité de l'air et la détection de situations anormales (gaz ou fumées) à l'aide d'un capteur analogique <strong>MQ-2</strong>.</p>
+        <ul>
+            <li>La sortie analogique du capteur est acquise périodiquement par le convertisseur analogique-numérique (<em>ADC</em>).</li>
+            <li>Constituant une fonction critique de sécurité, cette surveillance reste active en permanence, indépendamment des modes <em>HOME</em> ou <em>AWAY</em>.</li>
+            <li>Lorsque la valeur mesurée dépasse un seuil de déclenchement défini (<em>GAS_THRESHOLD</em>), le système active une LED d'alarme dédiée et un signal sonore via le buzzer de manière non bloquante, tout en prévoyant l'affichage d'un message explicite (<em>« GAS ALERT »</em>) sur l'UART et le LCD.</li>
+        </ul>
+
+        <div class="img-container">
+            <!-- Pense à bien placer ton image dans ton dépôt GitHub ou à adapter le nom du fichier -->
+            <img src="architecture_gaz.png" alt="Schéma d'architecture du Scénario 3">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Schéma fonctionnel de l'acquisition ADC et du capteur de gaz MQ-2</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Justification des choix techniques et configuration</h2>
+
+        <h3>1. Acquisition périodique par l'ADC et seuil de déclenchement</h3>
+        <p>L'acquisition de la tension analogique du capteur MQ-2 est effectuée de manière non bloquante toutes les 100 ms grâce à un test temporel basé sur <code>HAL_GetTick()</code>. Suite à la caractérisation expérimentale du capteur dans l'environnement du montage, le seuil de déclenchement de l'alarme a été fixé à <strong>3500</strong> (valeur brute ADC).</p>
+        <p>La fonction de lecture de l'ADC est implémentée comme suit :</p>
+
+        <pre><code class="language-C">uint32_t Read_MQ2_ADC(void)
+{
+    uint32_t val = 0;
+    HAL_ADC_Start(&hadc1);
+    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK)
+    {
+        val = HAL_ADC_GetValue(&hadc1);
+    }
+    HAL_ADC_Stop(&hadc1);
+    return val;
+}</code></pre>
+
+        <h3>2. Gestion non bloquante de l'alarme gaz</h3>
+        <p>Afin de ne pas bloquer l'exécution globale du microcontrôleur, la commutation du buzzer et le clignotement de la LED d'alarme sont gérés de façon asynchrone dans la boucle infinie <code>while(1)</code> :</p>
+
+        <pre><code class="language-C">    uint32_t current_tick = HAL_GetTick();
+    if (current_tick - last_adc_read >= ADC_READ_INTERVAL)
+    {
+        last_adc_read = current_tick;
+        adc_gas_val = Read_MQ2_ADC();
+
+        if (adc_gas_val > GAS_THRESHOLD)
+        {
+            gaz_active = 1;
+        }
+        else
+        {
+            gaz_active = 0;
+        }
+    }
+
+    if (alarm_active == 1 || gaz_active == 1)
+    {
+        uint32_t current_tick_alarm = HAL_GetTick();
+        uint32_t current_toggle = HAL_GetTick();
+
+        if (current_toggle - last_buzzer_toggle >= 1)
+        {
+            last_buzzer_toggle = current_toggle;
+            HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
+        }
+        if (current_tick_alarm - last_led_toggle >= 250)
+        {
+            last_led_toggle = current_tick_alarm;
+            HAL_GPIO_TogglePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin);
+        }
+    }
+    else
+    {
+        HAL_GPIO_WritePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+    }</code></pre>
+
+        <h3>Difficultés rencontrées et résolution (Calibrage du seuil de gaz)</h3>
+        <div class="note">
+            <p>Une fois le code implémenté et l'ensemble des capteurs câblés, nous avons rencontré des difficultés lors de l'ajustement de la valeur du seuil <code>GAS_THRESHOLD</code>. Suivant les réglages, soit le capteur déclenchait l'alarme en permanence, soit il ne détectait aucune variation.</p>
+            <p>Pour résoudre ce problème, nous sommes passés en mode de débogage afin d'analyser les valeurs brutes de l'ADC en temps réel. Cela nous a permis d'identifier la valeur de référence à l'air libre d'une part, et la valeur relevée en présence de gaz d'autre part. Cette phase de caractérisation expérimentale nous a ainsi permis d'ajuster précisément le seuil à <strong>3500</strong>, garantissant un fonctionnement fiable et stable du système de sécurité.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
