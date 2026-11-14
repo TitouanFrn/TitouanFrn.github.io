@@ -1,0 +1,32 @@
+<a href="anet.html" class="back-link">&larr; Retour au sommaire de l'Anet A8</a>
+
+<header>
+    <h1>1. Sécurité et Fiabilité Électrique</h1>
+    <p>Anet A8 Modifiée - Dossier d'Optimisation</p>
+</header>
+
+<div class="section">
+    <h2>Objectif et Enjeux de Sécurité</h2>
+    <p>La sécurité électrique est la modification la plus critique à apporter sur une imprimante 3D Anet A8 d'origine. Conçue à l'origine avec des composants économiques, sa carte mère est connue pour présenter des risques majeurs d'incendie sous forte charge thermique.</p>
+</div>
+
+<div class="section">
+    <h2>Modifications et Solutions Apportées</h2>
+    <ul>
+        <li><strong>Intégration de modules MOSFET externes :</strong>
+            <br><em>Problématique :</em> La carte mère d'origine de l'Anet A8 souffre d'une conception sous-dimensionnée au niveau des pistes d'alimentation du lit chauffant et de la cartouche de chauffe, présentant un risque élevé de surchauffe et de combustion des connecteurs (le fameux problème des connecteurs verts fondus).
+            <br><em>Solution :</em> Ajout de deux modules MOSFET dédiés (un pour le lit chauffant, un pour la buse) pour délester la carte mère en gérant la puissance de commutation directement depuis l'alimentation.
+        </li>
+        <li><strong>Refonte du câblage et réfection des soudures :</strong> Reprise complète des soudures sur la carte mère d'origine pour accueillir les nouveaux composants, sécuriser les arrivées de courant et fiabiliser les liaisons électriques.</li>
+        <li><strong>Alimentation fiabilisée :</strong> Utilisation d'un bloc d'alimentation capable de fournir le courant nécessaire sans chute de tension sous forte charge.</li>
+        <li><strong>Interrupteur général :</strong> Ajout d'un interrupteur physique en amont pour couper l'alimentation secteur proprement et en toute sécurité.</li>
+    </ul>
+
+    <div class="note">
+        <strong>Rappel de sécurité :</strong> Ne jamais laisser une imprimante 3D de première génération fonctionner sans surveillance, même après l'installation des MOSFETs et la mise à jour des sécurités thermiques dans le firmware Marlin.
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 - Titouan Fourneau</p>
+</footer>
