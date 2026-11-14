@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajout — Gestion de l'affichage LCD I2C</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Ajout — Gestion de l'affichage LCD I2C</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Cet ajout intègre un écran LCD 16x2 piloté par une interface I2C au système domotique sur STM32. L'objectif est d'offrir un retour visuel en temps réel à l'utilisateur concernant :</p>
+        <ul>
+            <li>Le mode de fonctionnement actuel du système (<em>MODE: HOME</em> ou <em>MODE: AWAY</em>).</li>
+            <li>L'état opérationnel de la fenêtre (<em>Fenetre ouverte</em> ou <em>Fenetre fermee</em>).</li>
+            <li>Les alertes critiques prioritaires (<em>ALERTE INTRUSION</em>, <em>ALERTE GAZ</em>, <em>ALERTE HUMIDITE</em>).</li>
+            <li>Un message de bienvenue personnalisé au démarrage du système.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Configuration et intégration logicielle</h2>
+
+        <h3>1. Intégration des fichiers pilotes (<code>i2c-lcd.h</code> et <code>i2c-lcd.c</code>)</h3>
+        <p>L'utilisation de l'écran LCD I2C a nécessité l'ajout de la bibliothèque dédiée comprenant les fonctions bas-niveau d'initialisation, d'envoi de commandes/caractères, de positionnement du curseur (<em>lcd_put_cur</em>) et d'effacement (<em>lcd_clear()</em>). Ces fichiers ont été inclus dans les en-têtes du fichier <code>main.c</code> :</p>
+        <pre><code class="language-C">#include "i2c-lcd.h"</code></pre>
+
+        <h3>2. Séquence d'initialisation et message d'accueil dans le <code>main</code></h3>
+        <p>Au démarrage de la carte, après l'initialisation des périphériques matériels (I2C, GPIO, ADC, TIM, UART), l'écran est initialisé et affiche un message d'accueil temporaire avant de basculer sur l'affichage dynamique :</p>
+        <pre><code class="language-C">lcd_init();
+lcd_clear();
+HAL_Delay(50);
+
+lcd_put_cur(0, 0);
+lcd_send_string("Bonjour Lisa");
+HAL_Delay(1000);
+lcd_clear();
+lcd_put_cur(0, 0);
+lcd_send_string("Bienvenue");
+HAL_Delay(1000);</code></pre>
+
+        <h3>3. Gestion de l'affichage dynamique par drapeau (<code>update_lcd_flag</code>)</h3>
+        <p>Pour éviter de saturer le bus I2C et d'entraîner un scintillement permanent de l'écran, un mécanisme de drapeau (<em>update_lcd_flag</em>) a été mis en place. L'écran n'est rafraîchi dans la boucle principale <code>while(1)</code> que lorsqu'un événement modifie l'état du système (changement de mode, détection de gaz/humidité ou action sur le bouton de la fenêtre) :</p>
+        <pre><code class="language-C">if (update_lcd_flag == 1)
+{
+    update_lcd_flag = 0;
+    lcd_clear();
+    HAL_Delay(2);
+
+    lcd_put_cur(0, 0);
+    if (currentMode == MODE_HOME) {
+        lcd_send_string("Mode: HOME");
+    } else {
+        lcd_send_string("Mode: AWAY");
+    }
+
+    lcd_put_cur(1, 0);
+    if (alarm_active == 1) {
+        lcd_send_string("ALERTE INTRUSION");
+    }
+    else if (gaz_active == 1) {
+        lcd_send_string("ALERTE GAZ");
+    }
+    else if (hum_active == 1) {
+        lcd_send_string("ALERTE HUMIDITE");
+    }
+    else if (currentEtat == MODE_OPEN) {
+        lcd_send_string("Fenetre ouverte");
+    }
+    else {
+        lcd_send_string("Fenetre fermee");
+    }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>Difficultés rencontrées et résolutions</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Problème d'affichage initial (Carrés blancs / Écran vide) :</strong><br>
+                <em>Problème :</em> Au premier branchement, l'écran affichait uniquement une ligne de carrés blancs ou restait totalement noir.<br>
+                <em>Résolution :</em> Ce comportement a été corrigé en ajustant finement la vis du potentiomètre de contraste de couleur bleue situé à l'arrière du module I2C pour trouver la plage de visibilité optimale des caractères, combiné à une vérification rigoureuse de l'ordre d'initialisation de l'I2C dans le code.</li>
+
+                <li><strong>Conflit entre l'affichage LCD et les trames UART :</strong><br>
+                <em>Problème :</em> L'utilisation initiale d'une fonction globale combinée envoyant simultanément des messages longs sur l'UART et des chaînes de caractères inadaptées au format de l'écran 16x2 effaçait le LCD en boucle.<br>
+                <em>Résolution :</em> Dissociation des flux : l'écran affiche désormais des libellés courts et optimisés (16 caractères max par ligne) gérés par des conditions strictes, tandis que les messages détaillés d'alerte sont transmis en arrière-plan via la liaison série UART.</li>
+
+                <li><strong>Erreurs de syntaxe et d'imbrication lors de la fusion du code :</strong><br>
+                <em>Problème :</em> L'ajout des conditions multiples pour le gaz, l'humidité et les alertes a généré des erreurs de compilation (accolades mal fermées, variables redondantes comme <em>welcome_msg</em> déclarées en double).<br>
+                <em>Résolution :</em> Nettoyage de la structure de la boucle <code>while(1)</code>, suppression des variables intermédiaires obsolètes et structuration propre des blocs <code>if / else if / else</code> pour l'affichage séquentiel des priorités.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
