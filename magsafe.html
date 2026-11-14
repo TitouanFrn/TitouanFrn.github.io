@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support MagSafe double charge — Titouan Fourneau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<a href="index.html" class="back-link">&larr; Retour à l'accueil du portfolio</a>
+
+<header>
+<h1>Support MagSafe pour recharger deux appareils</h1>
+<p>Un objet conçu de A à Z : croquis, rendus, modélisation 3D de 7 pièces et fichiers STL à imprimer.</p>
+</header>
+
+<div class="section">
+<h2>Présentation du projet</h2>
+<p>J'avais deux supports MagSafe qui traînaient, chacun de son côté. Plutôt que de les laisser inutilisés, j'ai décidé de les réunir dans <strong>un seul objet capable de recharger deux appareils en même temps</strong>.</p>
+<p>Le principe : un socle plat qui porte un premier chargeur, et un bras articulé qui soutient le second à hauteur d'yeux, orientable. Tout est modélisé de zéro et conçu pour s'imprimer en 3D.</p>
+</div>
+
+<div class="section">
+<h2>Démarche</h2>
+<ol class="steps">
+<li><strong>Croquis cotés.</strong> J'ai dessiné à la main l'objet sous plusieurs angles, avec les dimensions de chaque élément.</li>
+<li><strong>Rendus d'idée.</strong> J'ai donné mes croquis et mes cotes à une IA pour générer des images réalistes. Cela m'a permis de comparer des formes (tête de chargeur ronde ou carrée) avant de modéliser.</li>
+<li><strong>Modélisation 3D.</strong> J'ai créé les 7 pièces en STL à partir de zéro, en reprenant mes cotes. Toutes les pièces s'emboîtent parfaitement.</li>
+<li><strong>Impression et assemblage.</strong> Les fichiers STL sont prêts pour l'impression 3D, et les pièces se montent sans retouche.</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>Rendus d'idée</h2>
+<p>Ces trois images ont été générées par IA à partir de mes croquis et de mes cotes. Ce sont des rendus de projet, pas des photos de l'objet final.</p>
+<div class="gallery">
+<figure><a href="magsafe/rendu-idee.jpg"><img src="magsafe/rendu-idee.jpg" alt="Rendu de l'idée : socle avec un chargeur rond et bras articulé portant un second chargeur rond" loading="lazy"></a><figcaption>L'idée de départ : tête ronde sur un bras articulé.</figcaption></figure>
+<figure><a href="magsafe/rendu-haut.jpg"><img src="magsafe/rendu-haut.jpg" alt="Rendu en vue du haut : tête carrée sur bras articulé, chargeur rond intégré dans le socle" loading="lazy"></a><figcaption>Vue du haut : tête carrée et chargeur intégré au socle.</figcaption></figure>
+<figure><a href="magsafe/rendu-dos.jpg"><img src="magsafe/rendu-dos.jpg" alt="Rendu de dos : bras avec fente, charnière, prise USB-C et sortie de câble sur le socle" loading="lazy"></a><figcaption>Vue de dos : fente dans le bras, prise USB-C et sortie de câble.</figcaption></figure>
+</div>
+</div>
+
+<div class="section">
+<h2>Modèles 3D interactifs</h2>
+<p>Voici les vrais fichiers STL. Choisis une pièce pour la voir seule, ou « Toutes » pour les voir côte à côte. Fais glisser pour tourner, molette ou pincement pour zoomer.</p>
+<div class="viewer" id="viewer"><div class="viewer-msg" id="viewer-msg">Chargement des modèles 3D…</div><div class="viewer-hint">Glisser : tourner · Molette : zoom</div></div>
+<div class="part-tabs" id="tabs" role="group" aria-label="Choisir une pièce"></div>
+<p class="desc" id="partinfo"></p>
+<div class="part-tabs"><button type="button" id="spin" aria-pressed="false">Rotation automatique</button></div>
+<div class="note">La visionneuse fonctionne une fois le site en ligne. Si tu ouvres la page directement depuis un fichier sur ton ordinateur, le navigateur bloque le chargement des STL.</div>
+</div>
+
+<div class="section">
+<h2>Les 7 pièces</h2>
+<table>
+<tr><th>N°</th><th>Pièce</th><th>Dimensions (mm)</th><th>Fichier</th></tr>
+<tr><td>1</td><td>Base</td><td>75 × 100 × 11</td><td><a href="magsafe/01-base.stl" download>STL</a></td></tr>
+<tr><td>2</td><td>Support de charnière</td><td>40 × 15 × 26</td><td><a href="magsafe/02-support-charniere.stl" download>STL</a></td></tr>
+<tr><td>2</td><td>Douille</td><td>1 × 13 × 13</td><td><a href="magsafe/03-douille.stl" download>STL</a></td></tr>
+<tr><td>3.1</td><td>Axe 1</td><td>40 × 8 × 8</td><td><a href="magsafe/04-axe-1.stl" download>STL</a></td></tr>
+<tr><td>3.2</td><td>Axe 2</td><td>29 × 8 × 8</td><td><a href="magsafe/05-axe-2.stl" download>STL</a></td></tr>
+<tr><td>4</td><td>Bras</td><td>22 × 106 × 13</td><td><a href="magsafe/06-bras.stl" download>STL</a></td></tr>
+<tr><td>5</td><td>Support haut</td><td>66,5 × 66,5 × 26</td><td><a href="magsafe/07-support-haut.stl" download>STL</a></td></tr>
+</table>
+<p>La numérotation suit l'ordre de conception : socle, articulation (support de charnière, douille, axes), bras, puis support du chargeur du haut.</p>
+</div>
+
+<footer><p>&copy; 2026 Titouan Fourneau</p></footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+const PARTS = [
+  { id:'base',    label:'1 · Base',                 file:'magsafe/01-base.stl',              color:'#51606e', info:'Socle plat, 75 × 100 × 11 mm.' },
+  { id:'charn',   label:'2 · Support de charnière', file:'magsafe/02-support-charniere.stl', color:'#1f4fd8', info:'Pièce de l\'articulation, 40 × 15 × 26 mm.' },
+  { id:'douille', label:'2 · Douille',              file:'magsafe/03-douille.stl',           color:'#c9822b', info:'Petite rondelle de 13 mm de diamètre et 1 mm d\'épaisseur.' },
+  { id:'axe1',    label:'3.1 · Axe 1',              file:'magsafe/04-axe-1.stl',             color:'#2e9f7a', info:'Axe de 8 mm de diamètre, 40 mm de long.' },
+  { id:'axe2',    label:'3.2 · Axe 2',              file:'magsafe/05-axe-2.stl',             color:'#2e9f7a', info:'Axe de 8 mm de diamètre, 29 mm de long.' },
+  { id:'bras',    label:'4 · Bras',                 file:'magsafe/06-bras.stl',              color:'#8a5cc2', info:'Bras articulé, 22 × 106 × 13 mm.' },
+  { id:'haut',    label:'5 · Support haut',         file:'magsafe/07-support-haut.stl',      color:'#3a8fb7', info:'Support du chargeur du haut, 66,5 × 66,5 mm.' }
+];
+
+const box = document.getElementById('viewer');
+const msg = document.getElementById('viewer-msg');
+const tabs = document.getElementById('tabs');
+const infoEl = document.getElementById('partinfo');
+const spin = document.getElementById('spin');
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+box.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 1, 3000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(120, 220, 160); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.8); fill.position.set(-160, 80, -120); scene.add(fill);
+const grid = new THREE.GridHelper(600, 60, 0x7a8b99, 0x7a8b99);
+grid.material.transparent = true; grid.material.opacity = 0.18; scene.add(grid);
+
+function resize() {
+  const w = box.clientWidth, h = box.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(box); resize();
+
+const loader = new STLLoader();
+const meshes = {};
+const GAP = 14;
+
+function frame(objs) {
+  const b = new THREE.Box3();
+  objs.forEach(o => b.expandByObject(o));
+  const c = b.getCenter(new THREE.Vector3());
+  const r = b.getBoundingSphere(new THREE.Sphere()).radius;
+  const d = r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 0.95;
+  controls.target.copy(c);
+  camera.position.copy(c).add(new THREE.Vector3(1, 0.8, 1.1).normalize().multiplyScalar(d));
+  camera.near = d / 50; camera.far = d * 20; camera.updateProjectionMatrix();
+  controls.update();
+}
+
+function layoutAll() {
+  let x = 0;
+  const list = PARTS.map(p => meshes[p.id]);
+  const total = list.reduce((s, m) => s + m.userData.w, 0) + GAP * (list.length - 1);
+  x = -total / 2;
+  list.forEach(m => { m.position.set(x + m.userData.w / 2, 0, 0); x += m.userData.w + GAP; });
+}
+
+function show(id) {
+  const objs = [];
+  PARTS.forEach(p => {
+    const m = meshes[p.id]; if (!m) return;
+    const on = id === 'all' || id === p.id;
+    m.visible = on; if (on) objs.push(m);
+  });
+  if (id === 'all') { layoutAll(); infoEl.textContent = 'Les 7 pièces côte à côte (positions d\'affichage, pas l\'assemblage).'; }
+  else { meshes[id].position.set(0, 0, 0); infoEl.textContent = PARTS.find(p => p.id === id).info; }
+  tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
+  frame(objs);
+}
+
+[{ id:'all', label:'Toutes' }, ...PARTS].forEach(p => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = p.label; b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
+  b.addEventListener('click', () => show(p.id)); tabs.appendChild(b);
+});
+
+spin.addEventListener('click', () => {
+  controls.autoRotate = !controls.autoRotate;
+  spin.setAttribute('aria-pressed', String(controls.autoRotate));
+});
+controls.autoRotateSpeed = 1.6;
+
+(async () => {
+  try {
+    await Promise.all(PARTS.map(p => new Promise((ok, ko) => {
+      loader.load(p.file, geo => {
+        geo.rotateX(-Math.PI / 2);                 // les STL sont en Z vers le haut
+        geo.computeBoundingBox();
+        const bb = geo.boundingBox;
+        geo.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
+        geo.computeVertexNormals();
+        const mat = new THREE.MeshStandardMaterial({ color:p.color, roughness:0.55, metalness:0.08 });
+        const m = new THREE.Mesh(geo, mat);
+        m.userData.w = bb.max.x - bb.min.x;
+        meshes[p.id] = m; scene.add(m); ok();
+      }, undefined, ko);
+    })));
+    msg.remove();
+    show('all');
+    (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+  } catch (e) {
+    msg.textContent = 'Impossible de charger les modèles 3D. Ouvre la page depuis le site en ligne (ou un serveur local).';
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
