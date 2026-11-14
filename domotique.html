@@ -57,9 +57,9 @@
         .scenario-card:hover {
             transform: translateX(5px);
         }
-        .scenario-card.in-progress {
-            border-left-color: #ff9800;
-            background: #fff9f0;
+        .scenario-card.bonus {
+            border-left-color: #28a745;
+            background: #f1f9f2;
         }
         .scenario-card a {
             font-size: 18px;
@@ -67,11 +67,11 @@
             color: #002b49;
             text-decoration: none;
         }
-        .scenario-card.in-progress span {
-            color: #e65100;
-            font-size: 14px;
-            float: right;
-            font-weight: bold;
+        .scenario-card.bonus a {
+            color: #1e7e34;
+        }
+        .scenario-card a:hover {
+            text-decoration: underline;
         }
         p.desc {
             margin: 8px 0 0 0;
@@ -97,51 +97,58 @@
 
     <div class="section">
         <h2>Présentation du Projet</h2>
-        <p>Ce projet consiste à développer un système domotique complet articulé autour d'un microcontrôleur STM32. Le système intègre des capteurs de sécurité (gaz, intrusion), de confort (température, luminosité), des actionneurs (servomoteur, buzzer, LED) et une communication de supervision (UART, LCD, I²C).</p>
+        <p>Ce projet consiste à développer un système domotique complet articulé autour d'un microcontrôleur STM32. Le système intègre des capteurs de sécurité (gaz, intrusion, humidité), de confort (température, luminosité), des actionneurs (servomoteur, buzzer, LED) et une communication de supervision (UART, LCD I2C).</p>
     </div>
 
     <div class="section">
-        <h2>Liste des Scénarios</h2>
+        <h2>Liste des Scénarios & Modules</h2>
 
-        <!-- Scénario 1 : Terminé / Actif -->
+        <!-- Scénario 1 -->
         <div class="scenario-card">
             <a href="scenario1.html">Scénario 1 — Gestion d’une tâche périodique (Timer et interruptions)</a>
             <p class="desc">Configuration d'un Timer STM32 pour cadencer l'acquisition des capteurs (2 à 5 secondes) et validation expérimentale avec la LED PA5 et l'oscilloscope.</p>
         </div>
 
-        <!-- Scénarios en cours -->
+        <!-- Scénario 2 -->
         <div class="scenario-card">
-             <a href="scenario2.html">Scénario 2 — Sécurité : HOME/AWAY et détection d'intrusion (PIR)</a>
-            <p class="desc">Gestion des modes via bouton EXTI et détection de mouvement non bloquante.</p>
+            <a href="scenario2.html">Scénario 2 — Sécurité : HOME/AWAY et détection d'intrusion (PIR)</a>
+            <p class="desc">Gestion des modes via bouton EXTI, anti-rebond et détection de mouvement non bloquante.</p>
         </div>
 
+        <!-- Scénario 3 -->
         <div class="scenario-card">
-             <a href="scenario3.html">Scénario 3 — Détection de gaz (MQ-2 et ADC)</a>
-            <p class="desc">Surveillance de la qualité de l'air, seuil de déclenchement et alarme sonore/lumineuse.</p>
+            <a href="scenario3.html">Scénario 3 — Détection de gaz (MQ-2 et ADC)</a>
+            <p class="desc">Surveillance de la qualité de l'air, caractérisation expérimentale et seuil de déclenchement de l'alarme.</p>
         </div>
 
-        <div class="scenario-card in-progress">
-            <span>En cours</span>
-            <strong>Scénario 4 — Supervision (Liaison série UART)</strong>
-            <p class="desc">Communication avec un PC via ST-LINK pour le diagnostic et le suivi des états.</p>
+        <!-- Scénario 4 -->
+        <div class="scenario-card">
+            <a href="scenario4.html">Scénario 4 — Supervision (Liaison série UART)</a>
+            <p class="desc">Communication avec un PC via ST-LINK, formatage des messages et diagnostic en temps réel.</p>
         </div>
 
-        <div class="scenario-card in-progress">
-            <span>En cours</span>
-            <strong>Scénario 5 — Gestion intelligente de la fenêtre (PWM & Pluie)</strong>
+        <!-- Scénario 5 -->
+        <div class="scenario-card">
+            <a href="scenario5.html">Scénario 5 — Gestion intelligente de la fenêtre (PWM & Pluie)</a>
             <p class="desc">Commande d'un servomoteur et fermeture automatique en cas de pluie ou en mode AWAY.</p>
         </div>
 
-        <div class="scenario-card in-progress">
-            <span>En cours</span>
-            <strong>Scénario 6 — Mesure de température (Driver I²C TMP102)</strong>
-            <p class="desc">Développement d'un driver bas-niveau sans bibliothèque et analyse des trames SCL/SDA.</p>
+        <!-- Scénario 6 -->
+        <div class="scenario-card">
+            <a href="scenario6.html">Scénario 6 — Mesure de température (Driver I²C TMP102)</a>
+            <p class="desc">Développement d'un driver bas-niveau sans bibliothèque, gestion multi-seuils et analyse des trames SCL/SDA.</p>
         </div>
 
-        <div class="scenario-card in-progress">
-            <span>En cours</span>
-            <strong>Scénario 7 — Intégration globale du système</strong>
-            <p class="desc">Assemblage de l'ensemble des modules dans une application unique et cohérente.</p>
+        <!-- Scénario 7 -->
+        <div class="scenario-card">
+            <a href="scenario7.html">Scénario 7 — Intégration globale et gestion asynchrone</a>
+            <p class="desc">Recomposition architecturale, suppression du polling, Timer matériel et gestion par drapeaux (flags).</p>
+        </div>
+
+        <!-- Ajout LCD -->
+        <div class="scenario-card bonus">
+            <a href="lcd.html">Ajout — Gestion de l'affichage LCD I2C</a>
+            <p class="desc">Intégration d'un écran LCD 16x2, message d'accueil personnalisé et rafraîchissement non bloquant par drapeau.</p>
         </div>
     </div>
 
