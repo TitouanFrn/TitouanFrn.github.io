@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caisse Pro : système de caisse (POS) et écran cuisine (KDS) — Caisse Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a href="index.html" class="back-link">&larr; Retour à l'accueil du portfolio</a>
+
+<header>
+<h1>Caisse Pro : système de caisse (POS) et écran cuisine (KDS)</h1>
+<p>Application de restauration rapide multi-restaurants, en temps réel, sur Next.js et Supabase.</p>
+</header>
+
+<div class="section">
+<h2>Présentation du projet</h2>
+<p><strong>Caisse Pro</strong> est une application web de caisse (POS) et d'écran cuisine (KDS) pour la restauration rapide, pensée pour fonctionner sur tablette et téléphone. Plusieurs restaurants peuvent l'utiliser en parallèle, chacun avec ses propres données, protégées par un code PIN à 6 chiffres.</p>
+<p>Le principe : une commande saisie à la caisse (ou par un client) apparaît <strong>instantanément en cuisine</strong>, puis passe en livraison une fois prête, sans rafraîchir la page.</p>
+</div>
+
+<div class="section">
+<h2>Pile technique</h2>
+<ul>
+<li><strong>Next.js 16</strong> (App Router) et <strong>React 19</strong>, en TypeScript.</li>
+<li><strong>Supabase</strong> : base PostgreSQL, abonnement temps réel aux changements de table, fonction SQL pour la numérotation des tickets.</li>
+<li><strong>Tailwind CSS 4</strong> pour l'interface (cartes arrondies, ombres douces, usage tactile).</li>
+<li><strong>Vercel</strong> pour le déploiement ; variables d'environnement <code>NEXT_PUBLIC_SUPABASE_URL</code> et <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>Parcours d'une commande</h2>
+<pre><code>Caisse (ticket CB…)  ──┐
+                       ├──&gt;  orders.status = pending  ──&gt;  KDS (cuisine)
+Client / QR (ticket F…)┘                                      │ « Marquer comme prêt »
+                                                              ▼
+                              delivered  &lt;──  Livraison  &lt;──  ready</code></pre>
+<p>Chaque commande suit trois états : <code>pending</code> (en préparation), <code>ready</code> (prête en cuisine), <code>delivered</code> (livrée).</p>
+</div>
+
+<div class="section">
+<h2>Pages du projet</h2>
+<div class="scenario-card">
+<a href="caisse_architecture.html">1. Architecture et base de données</a>
+<p class="desc">Tables Supabase, isolation multi-restaurants par PIN, flux de données et suppression en cascade.</p>
+</div>
+<div class="scenario-card">
+<a href="caisse_acces.html">2. Accès par PIN et sessions de caisse</a>
+<p class="desc">Création d'un restaurant, génération du code PIN, connexion et sessions de caisse.</p>
+</div>
+<div class="scenario-card">
+<a href="caisse_vente.html">3. Terminal de caisse et gestion du menu</a>
+<p class="desc">Panier, numérotation des tickets, émojis automatiques, couleurs de catégories et CRUD du menu.</p>
+</div>
+<div class="scenario-card">
+<a href="caisse_cuisine.html">4. Écran cuisine et livraison</a>
+<p class="desc">Affichage temps réel des commandes, validation « prêt » et suivi des livraisons en salle.</p>
+</div>
+<div class="scenario-card">
+<a href="caisse_client.html">5. Commande client, historique et export</a>
+<p class="desc">Commande en 3 étapes via QR code, statistiques de vente et export CSV.</p>
+</div>
+</div>
+
+<div class="section">
+<h2>Limites connues et pistes d'amélioration</h2>
+<ul>
+<li><strong>Authentification :</strong> l'accès repose uniquement sur le code PIN et la clé publique Supabase. Pour une vraie mise en production, il faudrait activer les règles de sécurité par ligne (RLS) côté Supabase.</li>
+<li><strong>Numérotation des tickets de caisse :</strong> le numéro est calculé à partir du nombre de commandes de la session, ce qui peut créer un doublon si des commandes sont supprimées ou envoyées en même temps. Une fonction SQL côté base (comme pour les tickets clients) serait plus sûre.</li>
+<li><strong>Chargement du menu :</strong> la page caisse récupère tous les plats puis filtre par restaurant dans le navigateur. Un filtre direct dans la requête serait plus propre et plus léger.</li>
+</ul>
+</div>
+
+<footer><p>&copy; 2026 Titouan Fourneau</p></footer>
+</body>
+</html>
