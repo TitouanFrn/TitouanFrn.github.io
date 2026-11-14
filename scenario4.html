@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 4 — Supervision du système via la liaison série UART</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 70%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #fff;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 4 — Supervision du système via la liaison série UART</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce quatrième scénario vise à établir une communication bidirectionnelle entre la carte STM32 et un PC via la liaison UART (reliée au ST-LINK, généralement sur l'USART2 avec les broches PA2 en TX et PA3 en RX). Cette liaison permet d'assurer le suivi en temps réel du fonctionnement de la maison intelligente :</p>
+        <ul>
+            <li>Affichage d'un message de bienvenue et d'initialisation au démarrage du système.</li>
+            <li>Transmission de messages explicites lors des changements de mode (<em>HOME</em> / <em>AWAY</em>).</li>
+            <li>Notification en temps réel des alertes de sécurité (détection de gaz avec la valeur brute de l'ADC ou intrusion via le capteur PIR).</li>
+        </ul>
+
+        <div class="img-container">
+            <!-- Pense à bien placer ton image dans ton dépôt GitHub ou à adapter le nom du fichier -->
+            <img src="architecture_uart.png" alt="Schéma d'architecture de la liaison UART">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Schéma fonctionnel de la communication série USART2 / ST-LINK</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Configuration et intégration logicielle</h2>
+
+        <h3>1. Configuration dans STM32CubeMX</h3>
+        <p>La liaison série a été configurée sous <em>STM32CubeMX</em> en activant l'<strong>USART2</strong> en mode <em>Asynchronous</em>. Les paramètres de communication retenus sont un débit de <strong>115200 Bauds</strong>, une longueur de données de 8 bits, sans bit de parité, et 1 bit de stop. La régénération du projet a inclus les bibliothèques de gestion et la fonction d'initialisation <code>MX_USART2_Init()</code>.</p>
+
+        <h3>2. Envoi des messages de supervision et d'alertes</h3>
+        <p>Les bibliothèques standard <code>&lt;stdio.h&gt;</code> et <code>&lt;string.h&gt;</code> ont été intégrées pour formater les chaînes de caractères transmises via la fonction <code>HAL_UART_Transmit</code>.</p>
+
+        <p><strong>Message de bienvenue au démarrage :</strong></p>
+        <pre><code class="language-C">char welcome_msg[] = " Bienvenue \r\n Mode: HOME  \r\n";
+HAL_UART_Transmit(&huart2, (uint8_t*)welcome_msg, strlen(welcome_msg), HAL_MAX_DELAY);</code></pre>
+
+        <p><strong>Transmission des alertes et des changements de mode :</strong></p>
+        <pre><code class="language-C">// Alerte gaz avec affichage de la valeur ADC
+char gas_msg[50];
+sprintf(gas_msg, "[ALERTE] Gaz detecte! Valeur: %lu\r\n", adc_gas_val);
+HAL_UART_Transmit(&huart2, (uint8_t*)gas_msg, strlen(gas_msg), 100);
+
+// Changement de mode (HOME / AWAY)
+char mode_msg[40];
+sprintf(mode_msg, "Mode : AWAY \r\n"); // ou HOME
+HAL_UART_Transmit(&huart2, (uint8_t*)mode_msg, strlen(mode_msg), 100);
+
+// Alerte intrusion PIR
+char alert_msg[] = "[ALERTE] Intrusion detectee !\r\n";
+HAL_UART_Transmit(&huart2, (uint8_t*)alert_msg, strlen(alert_msg), 100);</code></pre>
+
+        <h3>Difficultés rencontrées et résolution (Accès au terminal série)</h3>
+        <div class="note">
+            <p>Lors du lancement du code, nous avons rencontré une difficulté majeure liée à l'absence d'un terminal série préinstallé dans notre environnement de développement pour lire les trames UART envoyées par la carte.</p>
+            <p>Pour contourner ce problème et valider la communication, nous avons utilisé un script <strong>PowerShell</strong> permettant d'ouvrir directement le port COM concerné et d'afficher le flux de données en continu :</p>
+            <pre><code class="language-bash">$port=New-Object System.IO.Ports.SerialPort COM3,115200,None,8,one; $port.Open(); while($true) { $port.ReadLine() }</code></pre>
+            <p>Cette solution nous a permis de vérifier avec succès la bonne réception des messages de diagnostic et des alertes en temps réel sur le PC.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
