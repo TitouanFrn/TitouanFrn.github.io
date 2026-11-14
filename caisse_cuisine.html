@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4. Écran cuisine et livraison — Caisse Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a href="caisse.html" class="back-link">&larr; Retour au projet Caisse Pro</a>
+
+<header>
+<h1>4. Écran cuisine et livraison</h1>
+<p>Commandes en temps réel, validation « prêt » et livraison en salle.</p>
+</header>
+
+<div class="section">
+<h2>L'écran cuisine (KDS)</h2>
+<p>La cuisine voit toutes les commandes <code>pending</code> du restaurant, qu'elles viennent de la caisse ou des clients, classées de la plus ancienne à la plus récente. Chaque commande est une carte avec :</p>
+<ul>
+<li>le numéro de ticket (bleu pour la caisse, violet pour les tickets clients commençant par <code>F</code>) et l'heure ;</li>
+<li>la salle ou table (« Comptoir » par défaut) et le nom du client s'il est connu ;</li>
+<li>la liste des plats avec leur quantité ;</li>
+<li>le bouton <strong>« Marquer comme prêt »</strong>.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>Mise à jour en temps réel</h2>
+<p>La page s'abonne aux changements de la table <code>orders</code> grâce à Supabase Realtime. Dès qu'une commande est ajoutée ou modifiée, la liste est rechargée, sans action de l'utilisateur.</p>
+<pre><code>const channel = supabase
+  .channel('schema-db-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadOrders)
+  .subscribe();
+
+return () =&gt; { supabase.removeChannel(channel); };</code></pre>
+<p>Le <code>removeChannel</code> du nettoyage évite d'empiler des abonnements quand on quitte la page.</p>
+</div>
+
+<div class="section">
+<h2>Valider une commande</h2>
+<p>Le bouton passe la commande de <code>pending</code> à <code>ready</code> :</p>
+<pre><code>await supabase.from('orders').update({ status: 'ready' }).eq('id', orderId);</code></pre>
+<p>Pendant l'appel, le bouton est désactivé (« Validation… ») pour éviter les doubles clics.</p>
+</div>
+
+<div class="section">
+<h2>Les livraisons en salle</h2>
+<p>La page <code>/livraison</code> affiche les commandes <code>ready</code>, avec la classe ou salle, le client à livrer et le livreur demandé. Les tickets de caisse (<code>CB</code>) y sont masqués : ils sont remis directement au comptoir. Un clic sur « livré » passe la commande à <code>delivered</code>.</p>
+<pre><code>const commandesClient = data.filter(order =&gt; !order.ticket_number?.startsWith('CB'));</code></pre>
+<p>Comme la cuisine, cette page se met à jour en temps réel.</p>
+</div>
+
+<footer><p>&copy; 2026 Titouan Fourneau</p></footer>
+</body>
+</html>
