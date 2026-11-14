@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3. Terminal de caisse et gestion du menu — Caisse Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a href="caisse.html" class="back-link">&larr; Retour au projet Caisse Pro</a>
+
+<header>
+<h1>3. Terminal de caisse et gestion du menu</h1>
+<p>Panier, tickets, émojis automatiques et édition du menu.</p>
+</header>
+
+<div class="section">
+<h2>Le terminal de caisse</h2>
+<p>La page <code>/caisse</code> charge le menu, puis le composant <code>POSClient</code> gère tout l'affichage : grille de plats, filtres de catégories et panier.</p>
+<ol>
+<li>L'utilisateur choisit une catégorie (ou « Tous ») et touche les plats pour les ajouter au panier.</li>
+<li>Le total est recalculé en direct : <code>cart.reduce((sum, item) =&gt; sum + item.price * item.quantity, 0)</code>.</li>
+<li>À la validation, la commande est créée avec le statut <code>pending</code>, puis ses lignes sont insérées dans <code>order_items</code>.</li>
+<li>Un message de succès affiche le numéro de ticket pendant 4 secondes et le panier est vidé.</li>
+</ol>
+</div>
+
+<div class="section">
+<h2>Numéro de ticket</h2>
+<p>Les tickets de caisse commencent par <code>CB</code>. Le numéro vient du nombre de commandes déjà passées dans la session :</p>
+<pre><code>const currentCount = count || 0;
+const calculatedTicketNumber = `CB${(currentCount % 100) + 1}`;</code></pre>
+<p>La numérotation recommence donc à 1 après 100 tickets.</p>
+</div>
+
+<div class="section">
+<h2>Interface intelligente</h2>
+<h3>Émoji automatique</h3>
+<p>Si un plat n'a pas d'image, l'application lit sa catégorie et son nom pour choisir un émoji (burger, frites, pizza, boisson, dessert…), et affiche 🍽️ par défaut.</p>
+<pre><code>if (text.includes("burger")) return "🍔";
+if (text.includes("pizza")) return "🍕";
+if (text.includes("boisson") || text.includes("soda")) return "🥤";
+return "🍽️";</code></pre>
+<h3>Couleur de catégorie</h3>
+<p>Chaque catégorie reçoit une couleur stable, calculée par un hash de son nom, puis ramenée à une palette. Une même catégorie a donc toujours la même couleur, sans réglage.</p>
+<pre><code>let hash = 0;
+for (let i = 0; i &lt; cat.length; i++) { hash = cat.charCodeAt(i) + ((hash &lt;&lt; 5) - hash); }
+const index = Math.abs(hash) % palettes.length;</code></pre>
+</div>
+
+<div class="section">
+<h2>Gestion du menu</h2>
+<p>La page <code>/gestion-menu</code> permet de créer, modifier et supprimer les plats : nom, prix, catégorie, et image par URL ou simple émoji. La suppression d'un plat retire d'abord ses lignes de commande pour respecter les clés étrangères.</p>
+</div>
+
+<footer><p>&copy; 2026 Titouan Fourneau</p></footer>
+</body>
+</html>
