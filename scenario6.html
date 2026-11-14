@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 6 — Mesure de température et gestion I²C</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 70%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #fff;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 6 — Mesure de température et gestion I²C</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce scénario consiste à intégrer un capteur de température intelligent (TMP102) sur le bus I²C. L'objectif est d'assurer une mesure précise de la température ambiante, et d'automatiser le pilotage de la fenêtre selon plusieurs seuils thermiques (fermeture en cas de froid, ouverture en cas de forte chaleur et zone de confort manuelle intermédiaire).</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Configuration de l'I²C et choix des paramètres</h2>
+        <p>La communication avec le capteur de température s'appuie sur le bus <strong>I²C1</strong> :</p>
+        <ul>
+            <li><strong>Broches utilisées :</strong> <em>PB8</em> pour la ligne d'horloge (SCL) et <em>PB9</em> pour la ligne de données (SDA).</li>
+            <li><strong>Adresse I²C du capteur :</strong> Fixée à <em>0x48</em> (décalée à <em>0x90</em> avec le bit de lecture/écriture dans la bibliothèque HAL).</li>
+            <li><strong>Paramètres du bus :</strong> Mode standard à 100 kHz, avec utilisation des résistances de tirage (<em>pull-up</em>) externes indispensables sur le bus.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>2. Architecture logicielle : Utilisation de drivers dédiés (<code>tmp102.c</code> / <code>tmp102.h</code>)</h2>
+        <p>Afin de structurer proprement le code et d'éviter d'alourdir le fichier principal <code>main.c</code>, un driver spécifique a été conçu pour le capteur TMP102. Il encapsule l'initialisation, la lecture brute des registres et les conversions de température.</p>
+
+        <h3>Fichier d'en-tête : <code>tmp102.h</code></h3>
+        <pre><code class="language-C">#ifndef TMP102_H
+#define TMP102_H
+
+#include "main.h"
+
+#define TMP102_ADDR (0x48 << 1)
+#define TMP102_REG_TEMP 0x00
+#define TMP102_REG_CONFIG 0x01
+
+HAL_StatusTypeDef TMP102_Init(void);
+HAL_StatusTypeDef TMP102_Measure(int16_t *raw_temp);
+float TMP102_RawToCelsius(int16_t raw_temp);
+int32_t TMP102_RawToMilliC(int16_t raw_temp);
+
+#endif</code></pre>
+
+        <h3>Fichier source : <code>tmp102.c</code></h3>
+        <pre><code class="language-C">#include "tmp102.h"
+
+extern I2C_HandleTypeDef hi2c1;
+
+HAL_StatusTypeDef TMP102_Init(void)
+{
+    if (HAL_I2C_IsDeviceReady(&hi2c1, TMP102_ADDR, 2, 100) != HAL_OK)
+    {
+        return HAL_ERROR;
+    }
+    uint8_t pData[3] = { TMP102_REG_CONFIG, 0x60, 0xA0 };
+
+    if (HAL_I2C_Master_Transmit(&hi2c1, TMP102_ADDR, pData, 3, 100) != HAL_OK)
+    {
+        return HAL_ERROR;
+    }
+
+    uint8_t reg = TMP102_REG_CONFIG;
+    uint8_t lu[2];
+
+    HAL_I2C_Master_Transmit(&hi2c1, TMP102_ADDR, &reg, 1, 100);
+    HAL_I2C_Master_Receive(&hi2c1, TMP102_ADDR, lu, 2, 100);
+
+    char msg[60];
+    sprintf(msg, "Config TMP102 : 0x%02X 0x%02X\r\n", lu[0], lu[1]);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef TMP102_Measure(int16_t *raw_temp)
+{
+    uint8_t data[2] = {0};
+    uint8_t reg = TMP102_REG_TEMP;
+
+    if (HAL_I2C_Master_Transmit(&hi2c1, TMP102_ADDR, &reg, 1, 100) != HAL_OK)
+    {
+        return HAL_ERROR;
+    }
+
+    if (HAL_I2C_Master_Receive(&hi2c1, TMP102_ADDR, data, 2, 100) != HAL_OK)
+    {
+        return HAL_ERROR;
+    }
+
+    *raw_temp = (int16_t)((data[0] << 4) | (data[1] >> 4));
+
+    if (*raw_temp & 0x800)
+    {
+        *raw_temp |= 0xF000;
+    }
+
+    return HAL_OK;
+}
+
+float TMP102_RawToCelsius(int16_t raw_temp)
+{
+    return (float)raw_temp * 0.0625f;
+}
+
+int32_t TMP102_RawToMilliC(int16_t raw_temp)
+{
+    return ((int32_t)raw_temp * 1000) / 16;
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Intégration dans la boucle principale et gestion multi-seuils</h2>
+        <p>L'acquisition est réalisée périodiquement (toutes les 200 ms). La température mesurée pilote automatiquement l'état de la fenêtre selon une stratégie à plusieurs seuils :</p>
+        <ul>
+            <li><strong>Forte chaleur (&gt; 28°C) :</strong> Ouverture automatique de la fenêtre si le système est en mode <em>HOME</em>.</li>
+            <li><strong>Température critique / Froid (≤ 23°C) :</strong> Fermeture automatique de la fenêtre pour préserver la chaleur.</li>
+            <li><strong>Zone d'alerte intermédiaire (entre 23°C et 26°C) :</strong> Envoi d'un message d'avertissement sur l'UART.</li>
+            <li><strong>Zone de confort libre (entre 26°C et 28°C) :</strong> Le contrôle manuel de la fenêtre par bouton reste totalement libre.</li>
+        </ul>
+
+        <pre><code class="language-C">uint32_t current_tick_temp = HAL_GetTick();
+if (current_tick_temp - last_temp_read >= TEMP_READ_INTERVAL)
+{
+    last_temp_read = current_tick_temp;
+    int16_t raw_temp = 0;
+    
+    if (TMP102_Measure(&raw_temp) == HAL_OK)
+    {
+        current_temp = TMP102_RawToCelsius(raw_temp);
+        
+        if (current_temp > TEMP_HOT_THRESHOLD)
+        {
+            if (currentMode == MODE_HOME && fenetre_active == 0)
+            {
+                fenetre_active = 1;
+                currentEtat = MODE_OPEN;
+                char hot_msg[] = "[INFO] Il fait trop chaud (> 28C) - Fenetre ouverte\r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)hot_msg, strlen(hot_msg), 100);
+            }
+        }
+        else if (current_temp <= TEMP_CRITICAL_THRESHOLD) 
+        {
+            if (currentMode == MODE_HOME && fenetre_active == 1)
+            {
+                fenetre_active = 0;
+                currentEtat = MODE_CLOSED;
+                char f_msg[] = "[ALERTE] Temperature critique <= 23C - Fenetre fermee\r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)f_msg, strlen(f_msg), 100);
+            }
+        }
+        else if (current_temp > TEMP_CRITICAL_THRESHOLD && current_temp <= TEMP_WARNING_HIGH) 
+        {
+            char temp_warn_msg[60];
+            sprintf(temp_warn_msg, "[ATTENTION] Temperature fraiche (zone d'alerte) : %.1f C\r\n", current_temp);
+            HAL_UART_Transmit(&huart2, (uint8_t*)temp_warn_msg, strlen(temp_warn_msg), 100);
+        }
+
+        update_lcd_flag = 1;
+        
+        char temp_msg[50];
+        int32_t mc  = TMP102_RawToMilliC(raw_temp);
+        int32_t ent = mc / 1000;
+        int32_t dec = (mc < 0 ? -mc : mc) % 1000 / 10;
+
+        sprintf(temp_msg, "Temperature : %s%ld.%02ld C\r\n",
+                (mc < 0 && ent == 0) ? "-" : "", ent, dec);
+        HAL_UART_Transmit(&huart2, (uint8_t*)temp_msg, strlen(temp_msg), 100);
+    }
+    else
+    {
+        char err_msg[] = "[ERREUR] Lecture TMP102 echouee\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t*)err_msg, strlen(err_msg), 100);
+    }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Observation et analyse des trames I²C à l'analyseur logique</h2>
+        <p>L'observation des signaux physiques <em>SCL</em> et <em>SDA</em> à l'aide d'un analyseur logique a permis de valider les différentes phases de la communication I²C :</p>
+        <ul>
+            <li><strong>Phase de Start et Adresse :</strong> Émission de la condition de <em>START</em> suivie de l'octet d'adresse <em>0x90</em> (écriture de l'adresse <em>0x48</em> avec le bit R/W à 0), confirmée par un accusé de réception (<em>ACK</em>) émis par le capteur.</li>
+            <li><strong>Pointeur de registre :</strong> Envoi de l'octet <em>0x00</em> pour pointer sur le registre interne de température.</li>
+            <li><strong>Phase de Restart et Lecture :</strong> Émission d'un <em>RESTART</em> suivi de l'octet <em>0x91</em> (adresse <em>0x48</em> avec R/W à 1), permettant au capteur de retourner les 2 octets de données suivis d'un <em>NACK</em> et d'un <em>STOP</em>.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Difficultés rencontrées et résolutions</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Absence de réponse I²C (<em>TMP102 absent</em>) :</strong><br>
+                <em>Problème :</em> L'exécution renvoyait systématiquement une erreur de non-ack de l'appareil.<br>
+                <em>Résolution :</em> Vérification rigoureuse de l'assignation des broches dans STM32CubeMX et validation de la présence des résistances de tirage (<em>pull-up</em>) indispensables sur les lignes du bus I²C.</li>
+
+                <li><strong>Support des nombres à virgule flottante (<em>float</em>) :</strong><br>
+                <em>Problème :</em> L'affichage formaté avec <em>%.1f</em> ou l'utilisation de décimales provoquait des erreurs du linker.<br>
+                <em>Résolution :</em> Ajout du drapeau de liaison <em>-u _printf_float</em> dans les propriétés du projet (MCU GCC Linker -&gt; Miscellaneous) pour autoriser le formatage des décimales via <em>sprintf</em>.</li>
+
+                <li><strong>Organisation du code et modularité :</strong><br>
+                <em>Problème :</em> Centraliser toute la logique de bas-niveau et de conversion directement dans le fichier <em>main.c</em> rendait la maintenance complexe.<br>
+                <em>Résolution :</em> Création des fichiers dédiés <strong><code>tmp102.c</code></strong> et <strong><code>tmp102.h</code></strong> pour encapsuler proprement les fonctions du capteur, allégeant ainsi considérablement le fichier principal.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
