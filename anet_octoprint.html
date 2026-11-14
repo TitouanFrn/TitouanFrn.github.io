@@ -1,0 +1,27 @@
+    <h2>2. Connexion Physique et Liaison Série</h2>
+    <ul>
+        <li><strong>Liaison USB :</strong> Connexion de la Raspberry Pi 4 au port USB de la carte mère de l'Anet A8 via un câble USB blindé (pour éviter les interférences électromagnétiques du lit chauffant).</li>
+        <li><strong>Gestion du 5V (Courant parasite) :</strong> Obturation de la broche 5V du câble USB (via un morceau de ruban adhésif Kapton) pour que seule la ligne de données et la masse soient actives, évitant que la Pi n'alimente la logique de la carte mère inter-sessions.</li>
+        <li><strong>Vitesse de communication :</strong> Configuration du port série dans OctoPrint à 115200 bauds.</li>
+    </ul>
+
+    <h2>3. Intégration de l'Écran Tactile (OctoDash)</h2>
+    <ul>
+        <li><strong>Installation d'OctoDash :</strong> Interface graphique tactile connectée via l'API d'OctoPrint.</li>
+        <li><strong>Affichage :</strong> Raccordement d'un écran tactile compatible (5 ou 7 pouces HDMI + USB) sur la Raspberry Pi 4.</li>
+        <li><strong>Fonctionnalités :</strong> Pilotage des axes/températures, lancement/pause/annulation des impressions, et suivi de l'avancement.</li>
+    </ul>
+
+    <h2>4. Paramètres d'Impression & Slicer</h2>
+    <ul>
+        <li><strong>Profil d'impression :</strong> Volume utile paramétré à <code>220 x 220 x 240 mm</code>.</li>
+        <li><strong>Rétraction (Système Bowden) :</strong> Distance réglée entre 4 et 5 mm à une vitesse d'environ 40 à 45 mm/s.</li>
+        <li><strong>Plugins OctoPrint essentiels :</strong>
+            <br>- <em>Resource Monitor :</em> Surveillance CPU et température de la Pi 4.
+            <br>- <em>Bed Level Visualizer :</em> Carte topographique interactive de la planéité du plateau via le capteur 3D Touch.
+            <br>- <em>Cancel Object :</em> Annulation d'une pièce spécifique en cours d'impression si elle se décolle, sans stopper le reste du plateau.
+        </li>
+    </ul>
+</div>
+<footer><p>&copy; 2026 - Titouan Fourneau</p></footer>
+
