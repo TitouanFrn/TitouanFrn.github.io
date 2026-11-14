@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 7 — Recomposition architecturale et gestion asynchrone par Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 7 — Recomposition architecturale et gestion asynchrone par Timer</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce scénario vise à optimiser l'architecture logicielle globale du système domotique en éliminant l'utilisation de boucles temporelles logicielles basées sur <code>HAL_GetTick()</code> pour l'acquisition des capteurs, ainsi qu'en nettoyant en profondeur les routines d'interruption. L'objectif est de confier le déclenchement des mesures à un Timer matériel (avec une période configurée entre 2 et 5 secondes) et d'externaliser les transmissions UART et l'affichage LCD dans la boucle principale <code>while(1)</code>. Ce mécanisme repose sur un système de drapeaux (<em>flags</em>) et d'identifiants de messages, garantissant ainsi un microcontrôleur fluide, réactif et non saturé. De plus, un second bouton a été intégré au montage pour rendre la bascule entre les modes <em>HOME</em> et <em>AWAY</em> plus accessible.</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Suppression du <em>polling</em> et intégration d'un Timer matériel</h2>
+        <p>L'acquisition périodique des capteurs ne repose plus sur des vérifications temporelles logicielles (<em>polling</em>) dans la boucle principale. Elle est désormais pilotée matériellement par une interruption de Timer (<code>TIM2</code>).</p>
+        <ul>
+            <li><strong>Déclencheur matériel :</strong> Le Timer génère une interruption périodique (configurée entre 2 et 5 secondes).</li>
+            <li><strong>Cycle d'exécution strict :</strong> <em>Timer &rarr; acquisition capteurs &rarr; traitement &rarr; actions &rarr; affichage</em>.</li>
+            <li><strong>Variables globales associées :</strong> Déclaration de variables de contrôle pour synchroniser les tâches asynchrones.</li>
+        </ul>
+
+        <h3>Variables globales (<code>/* USER CODE BEGIN PV */</code>)</h3>
+        <pre><code class="language-C">volatile uint8_t timer_acquisition_flag = 0;
+volatile uint8_t uart_msg_id = 0;</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Nettoyage des routines d'interruption (<code>HAL_GPIO_EXTI_Callback</code>)</h2>
+        <p>Pour éviter de saturer le microcontrôleur et de le ralentir, toutes les fonctions bloquantes (comme <code>HAL_UART_Transmit</code>) ont été totalement supprimées des routines d'interruption (boutons et capteurs). Les ISR (<em>Interrupt Service Routines</em>) se contentent désormais de modifier des variables d'état et d'affecter un identifiant de message (<code>uart_msg_id</code>).</p>
+
+        <h3>Routine d'interruption externe</h3>
+        <pre><code class="language-C">void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  // Bouton de changement de mode (Bouton 1 ou Bouton 2)
+  if (GPIO_Pin == BT_MODE_Pin || GPIO_Pin == BT_MODE2_Pin)
+  {
+    uint32_t current_time = HAL_GetTick();
+    if ((current_time - last_interrupt_time) > 200)
+    {
+      last_interrupt_time = current_time;
+
+      if (currentMode == MODE_HOME)
+      {
+        currentMode = MODE_AWAY;
+        currentEtat = MODE_CLOSED;
+        fenetre_active = 0;
+        uart_msg_id = 2;
+      }
+      else
+      {
+        currentMode = MODE_HOME;
+        alarm_active = 0;
+        currentEtat = MODE_CLOSED;
+        uart_msg_id = 1;
+      }
+      update_lcd_flag = 1;
+    }
+  }
+  // Capteur PIR
+  else if (GPIO_Pin == PIR_Pin)
+  {
+    if (currentMode == MODE_AWAY)
+    {
+      alarm_active = 1;
+      uart_msg_id = 3;
+      update_lcd_flag = 1;
+    }
+  }
+  // Bouton Fenêtre / Servomoteur
+  else if (GPIO_Pin == BT_FENETRE_Pin)
+  {
+    uint32_t current_time_2 = HAL_GetTick();
+    if ((current_time_2 - last_interrupt_time_2) > 500)
+    {
+      last_interrupt_time_2 = current_time_2;
+
+      if (currentMode == MODE_HOME)
+      {
+          if (currentEtat == MODE_CLOSED)
+          {
+              currentEtat = MODE_OPEN;
+              fenetre_active = 1;
+              uart_msg_id = 4;
+          }
+          else
+          {
+              currentEtat = MODE_CLOSED;
+              fenetre_active = 0;
+              uart_msg_id = 5;
+          }
+          update_lcd_flag = 1;
+      }
+      else
+      {
+          currentEtat = MODE_CLOSED;
+          fenetre_active = 0;
+      }
+    }
+  }
+}</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Traitement asynchrone dans la boucle principale (<code>while(1)</code>)</h2>
+        <p>La boucle <code>while(1)</code> analyse désormais de manière non bloquante les drapeaux positionnés par les interruptions (EXTI) et le Timer matériel afin d'effectuer les transmissions UART et d'exécuter les acquisitions des capteurs.</p>
+
+        <h3>Gestion des messages UART asynchrones</h3>
+        <pre><code class="language-C">        if (uart_msg_id != 0)
+        {
+            if (uart_msg_id == 1) {
+                char msg[] = "Mode : HOME \r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+            } else if (uart_msg_id == 2) {
+                char msg[] = "Mode : AWAY \r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+            } else if (uart_msg_id == 3) {
+                char msg[] = "[ALERTE] Intrusion detectee!\r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+            } else if (uart_msg_id == 4) {
+                char msg[] = "Fenetre ouverte \r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+            } else if (uart_msg_id == 5) {
+                char msg[] = "Fenetre fermee \r\n";
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+            }
+            uart_msg_id = 0;
+        }</code></pre>
+
+        <h3>Condition d'acquisition par le Timer matériel</h3>
+        <pre><code class="language-C">        if (timer_acquisition_flag == 1)
+        {
+            timer_acquisition_flag = 0;
+            // Acquisitions des capteurs (TMP102, ADC, etc.)
+        }</code></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Intégration du nouveau bouton de mode</h2>
+        <p>Afin de pallier un problème d'accessibilité sur la carte, un second bouton a été mis en place pour gérer le mode <em>HOME/AWAY</em>. Pour ce faire, la broche <code>PC12</code> a été configurée en mode interruption externe (EXTI).</p>
+
+        <pre><code class="language-C">#define BT_MODE2_Pin GPIO_PIN_12
+#define BT_MODE2_Port GPIOC</code></pre>
+        <p>Comme présenté dans le code des interruptions ci-dessus, la condition utilise l'opérateur logique OU (<code>||</code>) pour accepter indifféremment l'un ou l'autre des boutons.</p>
+    </div>
+
+    <div class="section">
+        <h2>Difficultés rencontrées et résolutions</h2>
+        <div class="note">
+            <ul>
+                <li><strong>Saturation et blocage du microcontrôleur dans les interruptions :</strong><br>
+                <em>Problème :</em> L'utilisation de fonctions de transmission synchrone de type <code>HAL_UART_Transmit</code> directement à l'intérieur des routines d'interruption allongeait considérablement le temps d'exécution des ISR, créant des risques de perte d'événements.<br>
+                <em>Résolution :</em> Suppression totale des appels UART dans les interruptions au profit d'un système d'identifiants de messages (<code>uart_msg_id</code>) traités en différé et de manière non bloquante dans la boucle principale.</li>
+
+                <li><strong>Rigidité des acquisitions logicielles :</strong><br>
+                <em>Problème :</em> Le cadencement des capteurs par des instructions logicielles basées sur le temps écoulé laissait trop de place aux interférences de la boucle principale.<br>
+                <em>Résolution :</em> Implémentation d'un cadencement matériel strict via un Timer (<code>TIM2</code>), garantissant une chronologie déterministe.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
