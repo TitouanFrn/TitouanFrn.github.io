@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dossier d'Optimisation et de Fiabilisation : Anet A8 Modifiée</title>
+<title>Scénario 2 — Gestion des modes HOME / AWAY, EXTI et Alarme PIR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -11,49 +11,100 @@
 </head>
 <body>
 
-    <a href="index.html" class="back-link">&larr; Retour à l'accueil du portfolio</a>
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
 
     <header>
-        <h1>Dossier d'Optimisation et de Fiabilisation : Anet A8 Modifiée</h1>
-        <p>Amélioration des performances, de la vitesse, de la précision et de la sécurité globale.</p>
+        <h1>Scénario 2 — Gestion des modes HOME / AWAY, EXTI et Alarme PIR</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
     </header>
 
     <div class="section">
-        <h2>Présentation du Projet</h2>
-        <p>Ce dossier répertorie l'ensemble des modifications matérielles, électroniques et logicielles apportées à l'imprimante 3D Anet A8 d'origine afin d'accroître ses performances, sa vitesse, sa précision géométrique et sa sécurité globale.</p>
+        <h2>Objectif et Description</h2>
+        <p>Ce second scénario intègre la gestion de deux modes de fonctionnement pour la maison intelligente :</p>
+        <ul>
+            <li><strong>MODE HOME :</strong> La maison est occupée ; les détections de mouvement par le capteur PIR sont considérées comme normales et ne déclenchent aucune alarme.</li>
+            <li><strong>MODE AWAY :</strong> La maison est inoccupée ; toute détection de mouvement par le capteur PIR active immédiatement une alarme intrusion (activation du buzzer et clignotement de la LED d'alarme de manière non bloquante).</li>
+        </ul>
+
+        <div class="img-container">
+            <!-- Pense à bien placer ton image dans ton dossier GitHub ou à adapter le nom du fichier -->
+            <img src="architecture.png" alt="Schéma d'architecture du Scénario 2">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Schéma fonctionnel du système d'alarme et des modes HOME / AWAY</p>
+        </div>
+
+        <p>Le basculement entre ces modes s'effectue à l'aide du bouton poussoir utilisateur de la carte géré par une interruption externe (<em>EXTI</em>), incluant une protection logicielle anti-rebond. Le système intègre également une surveillance continue d'un capteur de gaz via l'ADC.</p>
     </div>
 
     <div class="section">
-        <h2>Domaines d'Optimisation</h2>
+        <h2>Justification des choix techniques et configuration</h2>
 
-        <div class="scenario-card">
-            <a href="anet_securite.html">1. Sécurité et Fiabilité Électrique</a>
-            <p class="desc">Intégration de modules MOSFET externes, refonte du câblage, alimentation fiabilisée et interrupteur général.</p>
-        </div>
+        <h3>1. Gestion du bouton utilisateur et filtrage anti-rebond</h3>
+        <p>Le bouton poussoir (<em>BT_Pin</em>, broche PC13) est configuré en interruption externe. Pour éviter les faux déclenchements dus aux parasites mécaniques du bouton, une protection logicielle par mesure du temps écoulé (<em>debouncing</em> via <code>HAL_GetTick()</code>) est mise en place avec un seuil minimal de 200 ms.</p>
+        <p>Voici la fonction de rappel des interruptions externes (<code>HAL_GPIO_EXTI_Callback</code>) gérant le changement de mode et l'interception du capteur PIR :</p>
 
-        <div class="scenario-card">
-            <a href="anet_extrusion.html">2. Extrusion, Hotend et Transmission</a>
-            <p class="desc">Hotend E3D V6 Tout-Métal, configuration Bowden avec extrudeur Titan, courroies renforcées en fibre de verre et tendeurs.</p>
-        </div>
+        <pre><code class="language-C">void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == GPIO_PIN_13)
+  {
+    uint32_t current_time = HAL_GetTick();
 
-        <div class="scenario-card">
-            <a href="anet_chassis.html">3. Châssis et Stabilité Mécanique</a>
-            <p class="desc">Chariot personnalisé, chaîne de guidage, renforts structurels du châssis et support de plateau magnétique.</p>
-        </div>
+    if ((current_time - last_interrupt_time) > 200)
+    {
+      last_interrupt_time = current_time;
 
-        <div class="scenario-card">
-            <a href="anet_electronique.html">4. Électronique, Capteurs et Firmware</a>
-            <p class="desc">Mise à niveau automatique (3D Touch / BLTouch), PCB de connexion, boîtier de protection et refonte du firmware Marlin.</p>
-        </div>
+      if (currentMode == MODE_HOME)
+      {
+        currentMode = MODE_AWAY;
+      }
+      else
+      {
+        currentMode = MODE_HOME;
+        alarm_active = 0;
+      }
+    }
+  }
 
-        <div class="scenario-card">
-            <a href="anet_pilotage.html">5. Interface, Connectivité et Pilotage</a>
-            <p class="desc">Intégration d'un Raspberry Pi 4, écran tactile de contrôle et interrupteur physique déporté.</p>
-        </div>
+  else if (GPIO_Pin == GPIO_PIN_0)
+  {
+    if (currentMode == MODE_AWAY)
+    {
+      alarm_active = 1;
+    }
+  }
+}</code></pre>
 
-        <div class="scenario-card">
-            <a href="anet_octoprint.html">6. Configuration de la Raspberry Pi et d'OctoPrint</a>
-            <p class="desc">OctoPi, liaison série blindée, interface OctoDash et profils de tranchage (Cura / Orca Slicer).</p>
+        <h3>2. Gestion non bloquante de l'alarme (Buzzer et LED)</h3>
+        <p>Lorsque le système bascule en état d'alarme (suite à une intrusion en mode AWAY ou à une détection de gaz via l'ADC), le clignotement de la LED d'alarme et la commande du buzzer passif sont gérés de manière asynchrone dans la boucle infinie <code>while(1)</code>, en s'appuyant sur <code>HAL_GetTick()</code> plutôt que sur des fonctions de temporisation bloquantes (<code>delay</code>).</p>
+
+        <pre><code class="language-C">while(1){
+      if (alarm_active == 1)
+      {
+          uint32_t current_tick_alarm = HAL_GetTick();
+          uint32_t current_toggle = HAL_GetTick();
+
+          if (current_toggle - last_buzzer_toggle >= 1)
+          {
+              last_buzzer_toggle = current_toggle;
+              HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
+          }
+          if (current_tick_alarm - last_led_toggle >= 250)
+          {
+              last_led_toggle = current_tick_alarm;
+              HAL_GPIO_TogglePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin);
+          }
+      }
+      else
+      {
+          // Réinitialisation des sorties si l'alarme est désactivée
+          HAL_GPIO_WritePin(LED_INTRUSION_GPIO_Port, LED_INTRUSION_Pin, GPIO_PIN_RESET);
+          HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+      }
+    }</code></pre>
+
+        <h3>Difficultés rencontrées et résolution (Câblage du Buzzer)</h3>
+        <div class="note">
+            <p>Au cours de la mise en œuvre de ce second scénario, nous avons initialement câblé le détecteur PIR sur la broche <strong>PA0</strong>, la LED d'alarme sur <strong>PA1</strong> et le buzzer sur <strong>PA2</strong>. Cependant, lors des phases de test, nous avons constaté que le buzzer ne fonctionnait pas correctement.</p>
+            <p>Après des investigations à l'oscilloscope et au multimètre, nous avons mesuré une tension de sortie de seulement <em>1 V</em> sur la broche <strong>PA2</strong>, ce qui s'est avéré insuffisant pour alimenter et commuter correctement le buzzer ainsi que les LED. Pour résoudre ce problème de tension, nous avons décidé de déplacer la commande du buzzer de la broche <strong>PA2</strong> vers la broche <strong>PA4</strong>. Suite à cette modification matérielle, le signal de commande a retrouvé un niveau logique suffisant et l'ensemble du système (buzzer et LED d'alarme) a fonctionné de manière optimale.</p>
         </div>
     </div>
 
