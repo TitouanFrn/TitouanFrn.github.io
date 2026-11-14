@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scénario 5 — Gestion de la fenêtre motorisée (Servomoteur, Bouton et Capteur d'humidité)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f6f9;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        header {
+            background: #002b49;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 22px;
+        }
+        .section {
+            background: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h2, h3, h4 {
+            color: #002b49;
+        }
+        h2 {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 8px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        .img-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .img-container img {
+            max-width: 70%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #fff;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 14px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="domotique.html" class="back-link">&larr; Retour au sommaire du projet domotique</a>
+
+    <header>
+        <h1>Scénario 5 — Gestion de la fenêtre motorisée (Servomoteur, Bouton et Capteur d'humidité)</h1>
+        <p>Projet Domotique & IoT - ESIEE Paris</p>
+    </header>
+
+    <div class="section">
+        <h2>Objectif et Description</h2>
+        <p>Ce cinquième scénario introduit le contrôle d'une fenêtre motorisée à l'aide d'un micro-servomoteur. Son comportement dépend de plusieurs conditions combinées :</p>
+        <ul>
+            <li><strong>Commande manuelle :</strong> Un bouton poussoir permet à l'utilisateur de demander l'ouverture ou la fermeture de la fenêtre en mode <em>HOME</em>.</li>
+            <li><strong>Sécurité pluie :</strong> Un capteur d'humidité (<em>Steam Sensor</em>) surveille la présence d'eau. En cas de détection de pluie, la fenêtre se ferme automatiquement et le reste tant que la condition persiste.</li>
+            <li><strong>Mode Global (<em>HOME</em> / <em>AWAY</em>) :</strong> En mode <em>AWAY</em>, la fenêtre est systématiquement maintenue fermée pour des raisons de sécurité.</li>
+            <li><strong>Supervision UART et LCD :</strong> L'état de la fenêtre (<em>WINDOW OPEN</em> / <em>WINDOW CLOSED</em>) est transmis en temps réel via la liaison série.</li>
+        </ul>
+
+        <div class="img-container">
+            <!-- Pense à bien placer ton image dans ton dépôt GitHub ou à adapter le nom du fichier -->
+            <img src="architecture_fenetre.png" alt="Schéma d'architecture du Scénario 5">
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">Schéma fonctionnel de la commande PWM du servomoteur et de la détection de pluie</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Configuration et intégration logicielle</h2>
+
+        <h3>1. Définitions et variables globales</h3>
+        <p>Les broches associées au bouton de la fenêtre et au capteur d'humidité ont été configurées, de même que les états logiques et les seuils de déclenchement :</p>
+        
+        <pre><code class="language-C">typedef enum {
+    MODE_OPEN = 0,
+    MODE_CLOSED = 1
+} Etat_fenetre;
+
+#define BT_FENETRE_Pin GPIO_PIN_11
+#define BT_FENETRE_Port GPIOC
+
+#define SENSOR_Pin GPIO_PIN_7
+#define SENSOR_Port GPIOA
+
+#define HUMIDITE_THRESHOLD 1000
+
+volatile Etat_fenetre currentEtat = MODE_CLOSED;
+volatile uint32_t last_interrupt_time_2 = 0;
+volatile uint8_t fenetre_active = 0;
+uint32_t adc_humidite_val = 0;</code></pre>
+
+        <h3>2. Acquisition analogique (ADC1) et Pilotage du Servomoteur</h3>
+        <p>La fonction d'acquisition ADC a été adaptée pour gérer plusieurs canaux (canal 7 pour l'humidité et canal 8 pour le gaz). Le servomoteur est quant à lui piloté via un signal PWM par modification de la largeur d'impulsion :</p>
+
+        <pre><code class="language-C">uint32_t Read_ADC(uint32_t channel)
+{
+    ADC_ChannelConfTypeDef sConfig = {0};
+    sConfig.Channel = channel;
+    sConfig.Rank = 1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+    
+    uint32_t val = 0;
+    HAL_ADC_Start(&hadc1);
+    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK)
+    {
+        val = HAL_ADC_GetValue(&hadc1);
+    }
+    HAL_ADC_Stop(&hadc1);
+    return val;
+}
+
+void Set_Servo_Angle(uint16_t pulse_width)
+{
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pulse_width);
+}</code></pre>
+
+        <h3>3. Logique principale et gestion des interruptions</h3>
+        <p>Dans la boucle principale (<em>while(1)</em>), le système interroge périodiquement le capteur d'humidité. Les interruptions sur les boutons gèrent le changement de mode et l'ouverture/fermeture manuelle :</p>
+
+        <pre><code class="language-C">uint32_t current_tick = HAL_GetTick();
+if (current_tick - last_adc_read >= ADC_READ_INTERVAL)
+{
+    last_adc_read = current_tick;
+    adc_humidite_val = Read_ADC(ADC_CHANNEL_7);
+    uint8_t previous_gaz_state = fenetre_active;
+    
+    if (adc_humidite_val > HUMIDITE_THRESHOLD)
+    {
+        fenetre_active = 0;
+        if (previous_gaz_state == 0)
+        {
+            char gas_msg[50];
+            sprintf(gas_msg, "[ALERTE] humidite detectee! Valeur: %lu\r\n", adc_humidite_val);
+            HAL_UART_Transmit(&huart2, (uint8_t*)gas_msg, strlen(gas_msg), 100);
+        }
+    }
+}
+
+if (fenetre_active == 1) {
+    Set_Servo_Angle(1900); // Fenetre ouverte
+} else {
+    Set_Servo_Angle(750);  // Fenetre fermee
+}
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == BT_MODE_Pin)
+    {
+        uint32_t current_time = HAL_GetTick();
+        if ((current_time - last_interrupt_time) > 200)
+        {
+            last_interrupt_time = current_time;
+            char mode_msg[40];
+            if (currentMode == MODE_HOME)
+            {
+                currentMode = MODE_AWAY;
+                currentEtat = MODE_CLOSED;
+                fenetre_active = 0;
+                sprintf(mode_msg, "Mode : AWAY \r\n");
+            }
+            else
+            {
+                currentMode = MODE_HOME;
+                alarm_active = 0;
+                currentEtat = MODE_CLOSED;
+                sprintf(mode_msg, "Mode : HOME \r\n");
+            }
+            HAL_UART_Transmit(&huart2, (uint8_t*)mode_msg, strlen(mode_msg), 100);
+        }
+    }
+    
+    else if (GPIO_Pin == BT_FENETRE_Pin)
+    {
+        uint32_t current_time_2 = HAL_GetTick();
+        if ((current_time_2 - last_interrupt_time_2) > 500)
+        {
+            last_interrupt_time_2 = current_time_2;
+            char fenetre_msg[40];
+            if (currentMode == MODE_HOME)
+            {
+                if (currentEtat == MODE_CLOSED)
+                {
+                    currentEtat = MODE_OPEN;
+                    fenetre_active = 1;
+                    sprintf(fenetre_msg, "Fenetre ouverte \r\n");
+                }
+                else
+                {
+                    currentEtat = MODE_CLOSED;
+                    fenetre_active = 0;
+                    sprintf(fenetre_msg, "Fenetre fermee \r\n");
+                }
+                HAL_UART_Transmit(&huart2, (uint8_t*)fenetre_msg, strlen(fenetre_msg), 100);
+            }
+            else
+            {
+                currentEtat = MODE_CLOSED;
+                fenetre_active = 0;
+            }
+        }
+    }
+}</code></pre>
+
+        <h3>Difficultés rencontrées et résolutions</h3>
+        <div class="note">
+            <ul>
+                <li><strong>Conflit de brochage du bouton :</strong> Initialement, le bouton de la fenêtre était configuré sur la broche <em>PC0</em>, ce qui générait un conflit avec d'autres fonctions de la carte. Le problème a été résolu en basculant le bouton sur la broche <em>PC11</em>, garantissant un fonctionnement stable des interruptions.</li>
+                <li><strong>Calibrage du servomoteur :</strong> Pour obtenir une ouverture et une fermeture complètes et franches de la maquette de la fenêtre, plusieurs essais empiriques ont été nécessaires afin d'ajuster précisément les valeurs de largeur d'impulsion PWM (fixées à 750 pour la position fermée et 1900 pour la position ouverte).</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Titouan Fourneau</p>
+    </footer>
+
+</body>
+</html>
