@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5. Commande client, historique et export — Caisse Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a href="caisse.html" class="back-link">&larr; Retour au projet Caisse Pro</a>
+
+<header>
+<h1>5. Commande client, historique et export</h1>
+<p>Commande par QR code, statistiques de vente et export CSV.</p>
+</header>
+
+<div class="section">
+<h2>Commander depuis son téléphone</h2>
+<p>La page <code>/commander</code> permet à un client de passer commande seul, sans passer par la caisse. Elle s'ouvre par un lien (ou un QR code) qui contient l'identifiant du restaurant et, si besoin, la salle :</p>
+<pre><code>.../commander?restId=&lt;id du restaurant&gt;&amp;salle=&lt;salle&gt;</code></pre>
+<p>Ces deux paramètres sont lus dans l'URL, puis l'identifiant est enregistré pour charger le bon menu.</p>
+</div>
+
+<div class="section">
+<h2>Les 3 étapes</h2>
+<ol>
+<li><strong>Menu :</strong> choix des plats et panier.</li>
+<li><strong>Infos :</strong> nom, prénom, salle et serveur souhaité.</li>
+<li><strong>Fin :</strong> résumé de la commande, de la destination, puis validation.</li>
+</ol>
+<p>À la validation, un numéro de ticket commençant par <code>F</code> est généré par une fonction SQL de Supabase, puis la commande est insérée avec les infos du client. Le client voit son numéro à l'écran, et la cuisine reçoit la commande en direct.</p>
+<pre><code>const { data: ticketNum } = await supabase.rpc('generate_client_ticket_number', {
+  p_session_id: localStorage.getItem('current_session_id')
+});</code></pre>
+<div class="note">Un badge de notification sur la caisse compte les tickets <code>F…</code> pour signaler les commandes clients.</div>
+</div>
+
+<div class="section">
+<h2>Historique et statistiques</h2>
+<p>La page <code>/historique</code> affiche, pour la session choisie, le <strong>nombre de commandes</strong> et le <strong>chiffre d'affaires total</strong> (somme des <code>total_price</code>), puis le détail de chaque ticket : heure, client, salle, plats et prix.</p>
+</div>
+
+<div class="section">
+<h2>Export CSV</h2>
+<p>Un bouton génère un fichier CSV compatible Excel : séparateur point-virgule, virgule décimale française, et BOM UTF-8 pour que les accents s'affichent correctement.</p>
+<pre><code>let csvContent = "N° Ticket,Date,Heure,Client,Salle,Statut,Produits,Prix Total\n";
+const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });</code></pre>
+<p>Le bouton est désactivé tant qu'il n'y a aucune commande à exporter.</p>
+</div>
+
+<footer><p>&copy; 2026 Titouan Fourneau</p></footer>
+</body>
+</html>
