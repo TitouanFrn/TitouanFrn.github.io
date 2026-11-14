@@ -1,0 +1,42 @@
+<a href="anet.html" class="back-link">&larr; Retour au sommaire de l'Anet A8</a>
+
+<header>
+    <h1>4. Électronique, Capteurs et Firmware</h1>
+    <p>Anet A8 Modifiée - Dossier d'Optimisation</p>
+</header>
+
+<div class="section">
+    <h2>Objectif et Améliorations</h2>
+    <p>Cette partie détaille la mise à niveau des capteurs de précision, l'organisation du câblage de la carte et la refonte complète du firmware pour exploiter le nouveau matériel en toute sécurité.</p>
+</div>
+
+<div class="section">
+    <h2>Détail des Modifications</h2>
+    <ul>
+        <li><strong>Mise à niveau automatique (Capteur 3D Touch / BLTouch) :</strong> 
+            <br>Installation d'un capteur de palpage tactile pour cartographier automatiquement les éventuels défauts de planéité du plateau avant chaque impression (Auto-Bed Leveling), éliminant ainsi les calages manuels fastidieux.
+        </li>
+        <li><strong>Circuit imprimé de connexion arrière (PCB) :</strong> 
+            <br>Création et intégration d'un circuit imprimé sur l'arrière de la machine pour centraliser et connecter proprement les différents périphériques (fins de course, capteur 3D Touch, ventilateurs).
+        </li>
+        <li><strong>Boîtier de protection électronique :</strong> 
+            <br>Impression 3D d'un boîtier sur mesure regroupant et protégeant à la fois la carte mère et les modules MOSFET externes, intégrant une ventilation adéquate pour éviter toute surchauffe des composants de puissance.
+        </li>
+        <li><strong>Refonte complète du Firmware (Marlin) :</strong> 
+            <br>Modification, configuration et compilation d'un nouveau firmware de type Marlin :
+            <br>- Ajustement des sécurités thermiques (prise en compte des MOSFETs et des seuils de température du nouveau Hotend E3D V6).
+            <br>- Recalibrage des intensités de chauffe et des profils PID.
+            <br>- Modification complète de la cinématique et des dimensions suite à l'intégration du chariot personnalisé et du système Bowden.
+            <br>- Déclaration, activation et configuration précise des offsets du capteur 3D Touch.
+            <br>- Campagnes de tests approfondis (tests de vitesse, d'accélération et de montée en température) pour optimiser le compromis qualité/vitesse.
+        </li>
+    </ul>
+
+    <div class="note">
+        <strong>Bilan logiciel :</strong> Le passage à un firmware Marlin moderne doté des sécurités thermiques actives et du palpage automatique garantit une fiabilité et une autonomie d'impression sans commune mesure avec le firmware d'origine.
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 - Titouan Fourneau</p>
+</footer>
