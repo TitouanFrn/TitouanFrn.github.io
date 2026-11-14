@@ -142,3 +142,24 @@ header::after,.hero::after{content:"";position:absolute;top:-1.5rem;right:-1rem;
 .scenario-card.bonus{border-left:1px solid var(--bubble-edge);background:color-mix(in srgb,var(--accent) 10%,var(--bubble))}
 .project-list li:not(:has(a)){opacity:.65}
 @media (prefers-reduced-motion:reduce){.project-list li,.scenario-card{transition:none}.project-list li:hover,.scenario-card:hover{transform:none}}
+
+/* Visionneuse 3D, galerie et boutons de pièces */
+.viewer{position:relative;height:min(68vh,520px);min-height:340px;border-radius:28px;overflow:hidden;background:var(--bubble);
+  border:1px solid var(--bubble-edge);box-shadow:var(--bubble-shadow)}
+.viewer canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.viewer-msg{position:absolute;inset:0;display:grid;place-items:center;padding:1.2rem;text-align:center;color:var(--muted);font:.95rem var(--sans)}
+.viewer-hint{position:absolute;left:1rem;bottom:.8rem;font:.78rem var(--sans);color:var(--muted);pointer-events:none}
+.part-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0 .6rem}
+.part-tabs button{padding:.45rem .9rem;border:1.5px solid var(--ink);border-radius:999px;background:transparent;color:var(--ink);
+  font:600 .88rem var(--sans);cursor:pointer}
+.part-tabs button:hover{border-color:var(--accent);color:var(--accent)}
+.part-tabs button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.part-tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1rem;margin:1.2rem 0}
+.gallery figure{margin:0;overflow:hidden;background:var(--bubble);border:1px solid var(--bubble-edge);border-radius:22px;box-shadow:var(--bubble-shadow)}
+.gallery img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.gallery figcaption{padding:.65rem .9rem;color:var(--muted);font:.85rem/1.4 var(--sans)}
+.steps{counter-reset:step;list-style:none;padding:0}
+.steps li{counter-increment:step;position:relative;margin:0 0 1rem;padding-left:3rem}
+.steps li::before{content:counter(step);position:absolute;left:0;top:-.1rem;display:grid;place-items:center;width:2.1rem;height:2.1rem;
+  border-radius:50%;background:var(--ink);color:var(--paper);font:700 .95rem var(--sans)}
